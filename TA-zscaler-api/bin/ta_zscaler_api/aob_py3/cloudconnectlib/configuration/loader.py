@@ -37,7 +37,7 @@ from ..core.models import (
 
 _logger = get_cc_logger()
 
-_PROXY_TYPES = ['http', 'socks4', 'socks5', 'http_no_tunnel']
+_PROXY_TYPES = ['http', 'socks4', 'socks5',]
 _AUTH_TYPES = {
     'basic_auth': BasicAuthorization
 }

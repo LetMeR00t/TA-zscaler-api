@@ -38,7 +38,6 @@ _logger = get_cc_logger()
 
 _PROXY_TYPE_MAP = {
     'http': socks.PROXY_TYPE_HTTP,
-    'http_no_tunnel': socks.PROXY_TYPE_HTTP_NO_TUNNEL,
     'socks4': socks.PROXY_TYPE_SOCKS4,
     'socks5': socks.PROXY_TYPE_SOCKS5,
 }

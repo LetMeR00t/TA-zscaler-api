@@ -18,13 +18,14 @@ import copy
 import threading
 from abc import abstractmethod
 import six
+import re
 
 from cloudconnectlib.common.log import get_cc_logger
 from cloudconnectlib.core import defaults
 from cloudconnectlib.core.checkpoint import CheckpointManagerAdapter
 from cloudconnectlib.core.exceptions import HTTPError
-from cloudconnectlib.core.exceptions import StopCCEIteration, CCESplitError
-from cloudconnectlib.core.ext import lookup_method
+from cloudconnectlib.core.exceptions import StopCCEIteration, CCESplitError, QuitJobError
+from cloudconnectlib.core.ext import lookup_method, regex_search
 from cloudconnectlib.core.http import get_proxy_info, HttpClient
 from cloudconnectlib.core.models import DictToken, _Token, BasicAuthorization, Request
 
@@ -157,6 +158,15 @@ class BaseTask(object):
         """
         handler = ProcessHandler(method, input, output)
         self._pre_process_handler.append(handler)
+    def add_preprocess_handler_batch(self, handlers):
+        """
+        Add multiple preprocess handlers. All handlers will be maintained and
+        executed sequentially.
+        :param handlers: preprocess handler list
+        :type handlers: tuple
+        """
+        for method, args, output in handlers:
+            self.add_preprocess_handler(method, args, output)
 
     def add_preprocess_skip_condition(self, method, input):
         """
@@ -186,6 +196,15 @@ class BaseTask(object):
         handler = ProcessHandler(method, input, output)
         self._post_process_handler.append(handler)
 
+    def add_postprocess_handler_batch(self, handlers):
+        """
+        Add multiple postprocess handlers. All handlers will be maintained and
+        executed sequentially.
+        :param handlers: postprocess handler list
+        :type handlers: tuple
+        """
+        for method, args, output in handlers:
+            self.add_postprocess_handler(method, args, output)
     def add_postprocess_skip_condition(self, method, input):
         """
         Add a preprocess skip condition. The skip_conditions for postprocess
@@ -496,6 +515,9 @@ class CCEHTTPRequestTask(BaseTask):
             except StopCCEIteration:
                 logger.info("Task=%s exits in pre_process stage", self)
                 break
+            except QuitJobError:
+                self._flush_checkpoint()
+                raise
 
             if self._check_if_stop_needed():
                 break
@@ -521,6 +543,9 @@ class CCEHTTPRequestTask(BaseTask):
             except StopCCEIteration:
                 logger.info("Task=%s exits in post_process stage", self)
                 break
+            except QuitJobError:
+                self._flush_checkpoint()
+                raise
 
             self._persist_checkpoint(context)
 

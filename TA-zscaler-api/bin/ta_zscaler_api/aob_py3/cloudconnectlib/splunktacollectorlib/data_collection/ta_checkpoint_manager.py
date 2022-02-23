@@ -15,6 +15,7 @@
 #
 from builtins import object
 import json
+import logging
 import re
 
 from . import ta_consts as c
@@ -66,7 +67,8 @@ class TACheckPointMgr(object):
         return ss.get_state_store(
             meta_config,
             app_name,
-            use_cached_store=use_cache_file
+            use_cached_store=use_cache_file,
+            max_cache_seconds=max_cache_seconds
         )
 
     def _get_collection_name(self):
@@ -131,6 +133,13 @@ class TACheckPointMgr(object):
             return raw_checkpoint.get("data")
         return raw_checkpoint
 
+    def delete_if_exists(self, namespaces=None):
+        """Return true if exist and deleted else False"""
+        key, namespaces = self._get_ckpt_key(namespaces)
+        if self._store.exists(key):
+            self._store.delete_state(key)
+            return True
+        return False
     def update_ckpt(self, ckpt, namespaces=None):
         if not ckpt:
             stulog.logger.warning("Checkpoint expect to be not empty.")

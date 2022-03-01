@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/LetMeR00t/TA-zscaler-api/blob/main/images/logo.png?raw=true" alt="Logo TA-zscaler-api"/>
+  <img src="https://github.com/LetMeR00t/TA-zscaler-api/blob/2792791749b11d38c32659592f11e9d6c788bf82/images/logo.png?raw=true" alt="Logo TA-zscaler-api"/>
 </p>
 
 [![GitHub Release](https://img.shields.io/github/release/LetMeR00t/TA-zscaler-api.svg)](https://github.com/LetMeR00t/TA-zscaler-api/releases/)

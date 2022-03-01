@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="https://github.com/LetMeR00t/TA-zscaler-api/blob/2792791749b11d38c32659592f11e9d6c788bf82/images/logo.png?raw=true" alt="Logo TA-zscaler-api"/>
-</p>
+[![TA-zscaler-api](https://github.com/LetMeR00t/TA-zscaler-api/blob/3e786c9dd5701a0a3e82fddd638e61d432479899/images/logo.png?raw=true)](https://github.com/LetMeR00t/TA-zscaler-api/)
 
 [![GitHub Release](https://img.shields.io/github/release/LetMeR00t/TA-zscaler-api.svg)](https://github.com/LetMeR00t/TA-zscaler-api/releases/)
 [![dependency pyzscaler version](https://img.shields.io/badge/dependency--version:pyzscaler-1.0.0-brightgreen)](https://github.com/mitchos/pyZscaler/tree/1.0.0)

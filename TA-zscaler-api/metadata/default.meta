@@ -6,3 +6,8 @@ export = system
 [views]
 access = read : [ * ], write : [ admin ]
 export = none
+
+[alert_actions]
+# export actions only on the application and managable by admins
+access = read : [ power ], write : [ admin ]
+export = app

@@ -127,8 +127,9 @@ def collect_events(helper, ew):
         event = helper.new_event(source=input_type, index=helper.get_output_index(stanza_name), sourcetype=helper.get_sourcetype(stanza_name), data=data)
         ew.write_event(event)
     '''
+    helper.log_info("Start to recover events from Zscaler ZPA")
+    
     # Get information about the Splunk input
-    input_type = helper.get_input_type()
     opt_items = helper.get_arg('items')
     
     # Get credentials for Zscaler
@@ -145,34 +146,38 @@ def collect_events(helper, ew):
         "machine_groups": "list_groups",
         "posture_profiles": "list_profiles",
         "saml_attributes": "list_attributes",
-        "scim_groups": "list_groups",
         "segment_groups": "list_groups",
         "server_groups": "list_groups",
         "servers": "list_servers",
         "trusted_networks": "list_networks"
     }
     
+    # Instanciate the ZPA object with given inputs
     zpa = ZPA(client_id=client["username"], client_secret=client["password"], customer_id=customer_id)
+    
+    helper.log_info("Zscaler ZPA connection object is created successfully (connection hasn't been tested yet)")
     
     # Get items (simple methods)
     for item in opt_items:
         if item in ITEMS_MAP:
             function = ITEMS_MAP[item]
-            for data in getattr(getattr(zpa,item),function)():
-                event = helper.new_event(source=input_type+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
-                ew.write_event(event)
+            all_data = getattr(getattr(zpa,item),function)()
+            for data in all_data:
+                write_to_splunk(helper, ew, item, data)
+            log(helper, item, all_data)
     
     
     # Get policies if specified (more complex)
     if "policies" in opt_items:
         for policy_name in ["access","timeout","client_forwarding","siem"]:
             policy = zpa.policies.get_policy(policy_name)
-            event = helper.new_event(source=input_type+":policies", index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(policy))
-            ew.write_event(event) 
+            write_to_splunk(helper, ew, "policies", policy)
+            log(helper, "policies", policy)
             if policy_name != "siem":
-                for rule in zpa.policies.list_rules(policy_name):
-                    event = helper.new_event(source=input_type+":policies:rules"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(rule))
-                    ew.write_event(event) 
+                all_data = zpa.policies.list_rules(policy_name)
+                for rule in all_data:
+                    write_to_splunk(helper, ew, "policies:rules", rule)
+                log(helper, "policies:rules", all_data)
                 
     
     # Get provisioning if specified (more complex)
@@ -180,8 +185,8 @@ def collect_events(helper, ew):
         for key in ["connector","service_edge"]:
             provisioning = zpa.provisioning.list_provisioning_keys(key)
             if provisioning != []:
-                event = helper.new_event(source=input_type+":provisioning", index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(provisioning))
-                ew.write_event(event) 
+                write_to_splunk(helper, ew, "provisioning", provisioning)
+                log(helper, "provisioning", provisioning)
                 
                 
     # Get SCIM attributes if specified (more complex)
@@ -189,16 +194,44 @@ def collect_events(helper, ew):
         for idp in zpa.idp.list_idps():
             list_attributes = zpa.scim_attributes.list_attributes_by_idp(idp["id"])
             if list_attributes != []:
-                event = helper.new_event(source=input_type+":scim_attributes", index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(list_attributes))
-                ew.write_event(event) 
+                write_to_splunk(helper, ew, "scim_attributes", list_attributes)
+                log(helper, "scim_attributes", list_attributes)
+
+
+    # Get SCIM groups if specified (more complex)
+    if "scim_groups" in opt_items:
+        for idp in zpa.idp.list_idps():
+            list_groups = zpa.scim_groups.list_groups(idp["id"])
+            if list_groups != []:
+                write_to_splunk(helper, ew, "scim_groups", list_groups)
+                log(helper, "scim_groups", list_groups)
 
 
     # Get service edges if specified (more complex)
     if "service_edges" in opt_items:
-        for service_edges in zpa.service_edges.list_service_edges():
-            event = helper.new_event(source=input_type+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(service_edges))
-            ew.write_event(event)
-        for service_edge_groups in zpa.service_edges.list_service_edge_groups():
-            event = helper.new_event(source=input_type+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(service_edge_groups))
-            ew.write_event(event)
+        all_data = zpa.service_edges.list_service_edges()
+        for service_edges in all_data:
+            write_to_splunk(helper, ew, "service_edges", service_edges)
+        log(helper, "service_edges", list_groups)
+        all_data = zpa.service_edges.list_service_edge_groups()
+        for service_edge_groups in all_data:
+            write_to_splunk(helper, ew, "service_edge_groups", service_edge_groups)
+        log(helper, "service_edge_groups", list_groups)
     
+    helper.log_info("Events from Zscaler ZPA are recovered")
+
+
+
+# This function is writing events in Splunk
+def write_to_splunk(helper, ew, item, data):
+    event = helper.new_event(source=helper.get_input_type()+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
+    ew.write_event(event)
+    
+    
+# This function is logging information in the search.log
+def log(helper, item, all_data):
+    if len(all_data)>0 and all_data!=[]:
+        helper.log_info("[ZPA] Events are written for "+item+" to the index "+helper.get_output_index())
+    else:
+        helper.log_info("[ZPA] No event found for "+item)
+        

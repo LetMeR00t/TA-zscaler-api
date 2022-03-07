@@ -127,7 +127,7 @@ def collect_events(helper, ew):
         event = helper.new_event(source=input_type, index=helper.get_output_index(stanza_name), sourcetype=helper.get_sourcetype(stanza_name), data=data)
         ew.write_event(event)
     '''
-    helper.log_info("Start to recover events from Zscaler ZPA")
+    helper.log_info("[ZPA-I-START-COLLECT] Start to recover events from Zscaler ZPA")
     
     # Get information about the Splunk input
     opt_items = helper.get_arg('items')
@@ -146,7 +146,6 @@ def collect_events(helper, ew):
         "machine_groups": "list_groups",
         "posture_profiles": "list_profiles",
         "saml_attributes": "list_attributes",
-        "segment_groups": "list_groups",
         "server_groups": "list_groups",
         "servers": "list_servers",
         "trusted_networks": "list_networks"
@@ -155,7 +154,7 @@ def collect_events(helper, ew):
     # Instanciate the ZPA object with given inputs
     zpa = ZPA(client_id=client["username"], client_secret=client["password"], customer_id=customer_id)
     
-    helper.log_info("Zscaler ZPA connection object is created successfully (connection hasn't been tested yet)")
+    helper.log_debug("[ZPA-D-ZPA_OBJECT] Zscaler ZPA connection object is created successfully")
     
     # Get items (simple methods)
     for item in opt_items:
@@ -166,6 +165,16 @@ def collect_events(helper, ew):
                 write_to_splunk(helper, ew, item, data)
             log(helper, item, all_data)
     
+    # Get segment groups if specified (more complex, as we can have big segment groups)
+    if "segment_groups" in opt_items:
+        for data in zpa.segment_groups.list_groups():
+            applications = data["applications"]
+            del data["applications"]
+            for app in applications:
+                data["application"] = app
+                write_to_splunk(helper, ew, "segment_groups:"+str(data["id"]), data)
+                log(helper, "segment_groups", data)
+                
     
     # Get policies if specified (more complex)
     if "policies" in opt_items:
@@ -218,20 +227,20 @@ def collect_events(helper, ew):
             write_to_splunk(helper, ew, "service_edge_groups", service_edge_groups)
         log(helper, "service_edge_groups", list_groups)
     
-    helper.log_info("Events from Zscaler ZPA are recovered")
+    helper.log_info("[ZPA-I-EVENTS-CREATED] Events from Zscaler ZPA are recovered")
 
 
 
 # This function is writing events in Splunk
 def write_to_splunk(helper, ew, item, data):
-    event = helper.new_event(source=helper.get_input_type()+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
+    event = helper.new_event(source="zscalerapi:zpa:"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
     ew.write_event(event)
     
     
 # This function is logging information in the search.log
 def log(helper, item, all_data):
     if len(all_data)>0 and all_data!=[]:
-        helper.log_info("[ZPA] Events are written for "+item+" to the index "+helper.get_output_index())
+        helper.log_debug("[ZPA-D-EVENTS_WRITTEN] Events are written for "+item+" to the index "+helper.get_output_index()+": "+str(all_data))
     else:
-        helper.log_info("[ZPA] No event found for "+item)
+        helper.log_debug("[ZPA-D-NO_EVENT_FOUND] No event found for "+item)
         

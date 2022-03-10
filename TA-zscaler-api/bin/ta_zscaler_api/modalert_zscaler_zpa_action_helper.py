@@ -47,7 +47,7 @@ OPT_ARGS = {
     
 
 # Used to debug errors, get the good reference in the original python library
-REF_URL = "https://github.com/mitchos/pyZscaler/blob/1.0.2/pyzscaler"
+REF_URL = "https://github.com/mitchos/pyZscaler/blob/1.1.0/pyzscaler"
 REF_TOOL = "zpa"
 REF_FILE = None
 

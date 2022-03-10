@@ -1,7 +1,7 @@
 [![TA-zscaler-api](https://github.com/LetMeR00t/TA-zscaler-api/blob/3e786c9dd5701a0a3e82fddd638e61d432479899/images/logo.png?raw=true)](https://github.com/LetMeR00t/TA-zscaler-api/)
 
 [![GitHub Release](https://img.shields.io/github/release/LetMeR00t/TA-zscaler-api.svg)](https://github.com/LetMeR00t/TA-zscaler-api/releases/)
-[![dependency pyzscaler version](https://img.shields.io/badge/dependency-pyzscaler:v1.0.2-green)](https://github.com/mitchos/pyZscaler/tree/1.0.2/)
+[![dependency pyzscaler version](https://img.shields.io/badge/dependency-pyzscaler:v1.1.0-green)](https://github.com/mitchos/pyZscaler/tree/1.1.0/)
 ![Maintained](https://img.shields.io/badge/Maintained%3F-yes-green.svg)
 [![License](https://img.shields.io/github/license/LetMeR00t/TA-zscaler-api.svg)](https://github.com/LetMeR00t/TA-zscaler-api)
 

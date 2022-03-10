@@ -1,8 +1,8 @@
 <nav search_view="search" color="#009AD8">
   <view name="inputs" default="true" />
   <view name="configuration"/>
-  <collection label="ZPA">
-    <view name="zpa_createdelete_an_application_segment"/>
+  <collection label="User Guide">
+    <view name="zpa_user_guide"/>
   </collection>  
   <view name="audit_logs"/>
   <collection label="Other">

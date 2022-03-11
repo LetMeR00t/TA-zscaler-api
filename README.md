@@ -8,8 +8,12 @@
 # TA-zscaler-api - An unofficial Splunk technical add-on for the Zscaler API
 
 This TA allows to **add an integration** between [Zscaler](https://www.zscaler.com/) and Splunk. It lets you:
-- Get all configurations for Zscaler ZPA periodically using a HTTP input within Splunk
-- Interact with Zscaler ZPA using custom alert actions and interactive dashboards
+* ZPA
+  * Get all configurations for Zscaler ZPA periodically using a HTTP input within Splunk
+  * Interact with Zscaler ZPA using custom alert actions
+    * Create/update/delete an application segment
+* ZIA
+  * Not yet supported
 
 As this TA is based on the [unofficial SDK for the Zscaler API (mitchos/pyZscaler)](https://github.com/mitchos/pyZscaler), it is not affiliated with, nor supported by Zscaler in any way.
 

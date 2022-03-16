@@ -4,6 +4,7 @@ import sys
 
 # Import custom librairies
 from pyzscaler import ZPA
+import restfly
 
 # encoding = utf-8
 OPT_ARGS = {
@@ -20,8 +21,7 @@ OPT_ARGS = {
         {"name": "health_reporting", "annotation": str, "accepted_values": ["NONE","ON_ACCESS","CONTINUOUS"]},
         {"name": "ip_anchored", "annotation": bool},
         {"name": "is_cname_enabled", "annotation": bool},
-        {"name": "passive_health_enabled", "annotation": bool}
-        ],
+        {"name": "passive_health_enabled", "annotation": bool}],
     "update_segment": [
         {"name": "bypass_type", "annotation": str, "accepted_values": ["ALWAYS","NEVER","ON_NET"]},
         {"name": "clientless_app_ids", "annotation": list},
@@ -41,10 +41,13 @@ OPT_ARGS = {
         {"name": "server_group_ids", "annotation": list},
         {"name": "tcp_ports", "annotation": list},
         {"name": "server_group_ids", "annotation": list},
-        {"name": "udp_ports", "annotation": bool}
-        ]
+        {"name": "udp_ports", "annotation": bool}],
+    "add_group": [
+        {"name": "application_ids", "annotation": list},
+        {"name": "config_space", "annotation": str, "accepted_values": ["DEFAULT","SIEM"]},
+        {"name": "description", "annotation": str},
+        {"name": "policy_migrated", "annotation": bool}]
     }
-    
 
 # Used to debug errors, get the good reference in the original python library
 REF_URL = "https://github.com/mitchos/pyZscaler/blob/1.1.0/pyzscaler"
@@ -110,16 +113,19 @@ def process_event(helper, *args, **kwargs):
         helper.log_info(v.default)
         helper.log_info("Default is: "+v.default if v.default is not inspect._empty else "No default value")
     """
-
-    helper.log_info("Alert action zscaler_zpa_action started.")
-    
     # Define global variables
     global REF_FILE
     
     # Get Zscaler information
     client = helper.get_user_credential(helper.get_param("account_name"))
+    if client is None:
+        helper.log_error("[ZPA-E-AUTH-ACCOUNT] Account can't be found. Did you configured the account under Configuration ? Did you mentionned the account name to use when raising this action ?")
+        sys.exit(1)
     helper.log_debug("[ZPA-D-AUTH] Authentication will be done using the account \""+helper.get_param("account_name")+"\"")
     customer_id = helper.get_global_setting("customer_id")
+    if customer_id is None:
+        helper.log_error("[ZPA-E-AUTH-CUSTOMER-ID] Customer ID can't be found. Did you configured it under Configuration ?")
+        sys.exit(1)
     
     # Get parameters
     action = helper.get_param("action")
@@ -131,47 +137,59 @@ def process_event(helper, *args, **kwargs):
     zpa = ZPA(client_id=client["username"], client_secret=client["password"], customer_id=customer_id)
     
     helper.log_debug("[ZPA-D-ZPA_OBJECT] Zscaler ZPA connection object is created successfully")
-    for event in events:
-        if action == "create_app_segment":
-            REF_FILE = "app_segments.py#L61"
-            helper.log_info("[ZPA-I-VALIDATE_NEW_APP_SEGMENT] Validating events for a new app segment")
-            # Validate the function with current events
-            params = validate_function(helper, zpa.app_segments.add_segment, event)
-            # Execute the action to Zscaler
-            zpa.app_segments.add_segment(**params)
-            helper.log_info("[ZPA-I-ACTION_NEW_APP_SEGMENT] Action was performed in Zscaler")
-        elif action == "update_app_segment":
-            REF_FILE = "app_segments.py#L150"
-            helper.log_info("[ZPA-I-VALIDATE_UPDATE_APP_SEGMENT] Validating events for updating an existing app segment")
-            # Validate the function with current events
-            params = validate_function(helper, zpa.app_segments.update_segment, event)
-            # Execute the action to Zscaler
-            zpa.app_segments.update_segment(**params)
-            helper.log_info("[ZPA-I-ACTION_UPDATE_APP_SEGMENT] Action was performed in Zscaler") 
-        elif action == "delete_app_segment":
-            REF_FILE = "app_segments.py#L44"
-            helper.log_info("[ZPA-I-VALIDATE_DELETE_APP_SEGMENT] Validating events for a delete an existing app segment")
-            # Validate the function with current events
-            params = validate_function(helper, zpa.app_segments.delete_segment, event)
-            # Execute the action to Zscaler
-            helper.log_info("[ZPA-I-PROCESS_DELETE_APP_SEGMENT] #1: Remove the application segment from the segment group to which it belongs")
-            app = zpa.app_segments.get_segment(**params)
-            helper.log_debug("[ZPA-D-APP_SEGMENT_FOUND] Application segment was found for the given ID: "+str(params))
-            # If there is no error on the previous command, it means that the app_segment really exist for the given id
-            segment = zpa.segment_groups.get_group(app["segment_group_id"])
-            helper.log_debug("[ZPA-D-SEGMENT_GROUP_FOUND] Segment group was found for the given ID: "+str(app["segment_group_id"]))
-            # We remove the ID by getting all other IDs without it
-            app_id_remaining = [app_of_segment["id"] for app_of_segment in segment["applications"] if app_of_segment["id"]!=app["id"]]
-            # We update the segment group to remove the application segment
-            zpa.segment_groups.update_group(group_id=segment["id"], application_ids=app_id_remaining)
-            helper.log_debug("[ZPA-D-SEGMENT_GROUP_UPDATED] Segment group was updated for the given ID: "+str(app["segment_group_id"]))
-            # Now we can delete the application segment itself
-            helper.log_info("[ZPA-I-PROCESS_DELETE_APP_SEGMENT] #2: Delete the application segment (id="+app["id"]+") itself")
-            zpa.app_segments.delete_segment(segment_id=app["id"])
-            helper.log_info("[ZPA-I-ACTION_DELETE_APP_SEGMENT] Action was performed in Zscaler") 
-        else:
-            helper.log_error("[ZPA-E-ACTION] Selected action is not supported by this custom alert action")
-            sys.exit(10)
+    try:
+        for event in events:
+            if action == "create_app_segment":
+                REF_FILE = "app_segments.py#L61"
+                helper.log_info("[ZPA-I-VALIDATE_NEW_APP_SEGMENT] Validating events for a new app segment")
+                # Validate the function with current events
+                params = validate_function(helper, zpa.app_segments.add_segment, event)
+                # Execute the action to Zscaler
+                zpa.app_segments.add_segment(**params)
+                helper.log_info("[ZPA-I-ACTION_NEW_APP_SEGMENT] 🟢 Action was performed in Zscaler")
+            elif action == "update_app_segment":
+                REF_FILE = "app_segments.py#L150"
+                helper.log_info("[ZPA-I-VALIDATE_UPDATE_APP_SEGMENT] Validating events for updating an existing app segment")
+                # Validate the function with current events
+                params = validate_function(helper, zpa.app_segments.update_segment, event)
+                # Execute the action to Zscaler
+                zpa.app_segments.update_segment(**params)
+                helper.log_info("[ZPA-I-ACTION_UPDATE_APP_SEGMENT] 🟢 Action was performed in Zscaler") 
+            elif action == "delete_app_segment":
+                REF_FILE = "app_segments.py#L44"
+                helper.log_info("[ZPA-I-VALIDATE_DELETE_APP_SEGMENT] Validating events for a delete an existing app segment")
+                # Validate the function with current events
+                params = validate_function(helper, zpa.app_segments.delete_segment, event)
+                # Execute the action to Zscaler
+                helper.log_info("[ZPA-I-PROCESS_DELETE_APP_SEGMENT] #1: Remove the application segment from the segment group to which it belongs")
+                app = zpa.app_segments.get_segment(**params)
+                helper.log_debug("[ZPA-D-APP_SEGMENT_FOUND] Application segment was found for the given ID: "+str(params))
+                # If there is no error on the previous command, it means that the app_segment really exist for the given id
+                segment = zpa.segment_groups.get_group(app["segment_group_id"])
+                helper.log_debug("[ZPA-D-SEGMENT_GROUP_FOUND] Segment group was found for the given ID: "+str(app["segment_group_id"]))
+                # We remove the ID by getting all other IDs without it
+                app_id_remaining = [app_of_segment["id"] for app_of_segment in segment["applications"] if app_of_segment["id"]!=app["id"]]
+                # We update the segment group to remove the application segment
+                zpa.segment_groups.update_group(group_id=segment["id"], application_ids=app_id_remaining)
+                helper.log_debug("[ZPA-D-SEGMENT_GROUP_UPDATED] Segment group was updated for the given ID: "+str(app["segment_group_id"]))
+                # Now we can delete the application segment itself
+                helper.log_info("[ZPA-I-PROCESS_DELETE_APP_SEGMENT] #2: Delete the application segment (id="+app["id"]+") itself")
+                zpa.app_segments.delete_segment(segment_id=app["id"])
+                helper.log_info("[ZPA-I-ACTION_DELETE_APP_SEGMENT] 🟢 Action was performed in Zscaler") 
+            elif action == "create_segment_group":
+                REF_FILE = "segment_groups.py#L57"
+                helper.log_info("[ZPA-I-VALIDATE_NEW_SEGMENT_GROUP] Validating events for a new segment group")
+                # Validate the function with current events
+                params = validate_function(helper, zpa.segment_groups.add_group, event)
+                # Execute the action to Zscaler
+                zpa.segment_groups.add_group(**params)
+                helper.log_info("[ZPA-I-ACTION_NEW_SEGMENT_GROUP] 🟢 Action was performed in Zscaler")
+            else:
+                helper.log_error("[ZPA-E-ACTION] Selected action is not supported by this custom alert action")
+                sys.exit(10)
+    except restfly.errors.BadRequestError as e:
+        helper.log_error("[ZPA-E-BAD-REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+        sys.exit(15)
 
     return 0
 
@@ -181,7 +199,7 @@ def validate_function(helper, func, event):
     
     # Log on which event we are working on
     helper.log_debug("[ZPA-D-FUNC] Validating following event for the function ("+func.__name__+"): "+str(event))
-    
+
     # Prepare final dictionnary
     params = {}
     
@@ -207,7 +225,7 @@ def validate_function(helper, func, event):
                 elif param is not None:
                     params[arg["name"]] = param
                 else:
-                    helper.log_info("[ZPA-I-OPTIONAL_ARG_NONE] Optional argument "+arg["name"]+" will not be added in the payload as it's value is None")
+                    helper.log_debug("[ZPA-D-OPTIONAL_ARG_NONE] Optional argument "+arg["name"]+" will not be added in the payload as it's value is None")
             else:
                 if param is not None:
                     params[arg["name"]] = param
@@ -230,7 +248,7 @@ def process_param(helper, event, sig_name, sig_annotation, sig_default):
             helper.log_error("[ZPA-E-FIELD_NOT_PRESENT] An expected field ("+sig_name+") is not present in the event (and no default value was found). Please refer to the original python library code to verify which fields are expected: "+REF_URL+"/"+REF_TOOL+"/"+REF_FILE)
             sys.exit(1)
         else:
-            helper.log_info("[ZPA-I-FIELD_NOT_PRESENT_DEFAULT] An expected field ("+sig_name+") is not present but a default value will be used: "+str(value)+". Please refer to the original python library code to verify which fields are expected: "+REF_URL+"/"+REF_TOOL+"/"+REF_FILE)
+            helper.log_debug("[ZPA-D-FIELD_NOT_PRESENT_DEFAULT] An expected field ("+sig_name+") is not present but a default value will be used: "+str(value)+". Please refer to the original python library code to verify which fields are expected: "+REF_URL+"/"+REF_TOOL+"/"+REF_FILE)
             value = sig_default
     helper.log_debug("[ZPA-D-TYPE_PROCESSING] Type for "+sig_name+" need to be "+str(sig_annotation)+", processing it...")
     # Avoid adding none values
@@ -241,12 +259,15 @@ def process_param(helper, event, sig_name, sig_annotation, sig_default):
         elif sig_annotation is str:
             value = str(value)
         elif sig_annotation is list:
-            value = value.split(",")
+            value = value.replace(", ",",").split(",")
         elif sig_annotation is bool:
             if value in ["0","false"]:
                 value = False
             else:
                 value = True
+        elif sig_annotation is inspect._empty:
+            helper.log_error("[ZPA-E-EMPTY-TYPE] This error should come from the pyzscaler library on which a field has no type defined. Please check this information for the field '"+str(sig_name)+"'")
+            sys.exit(1)
         else:
             helper.log_error("[ZPA-E-UNSUPPORTED_TYPE] Unsupported type for parameter: "+str(sig_annotation))
             sys.exit(1)

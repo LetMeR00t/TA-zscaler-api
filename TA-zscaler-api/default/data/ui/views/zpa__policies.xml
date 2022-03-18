@@ -1,0 +1,127 @@
+<form>
+  <label>ZPA - Policies</label>
+  <description>This dashboard is used to recover informations about the policies</description>
+  <search id="last_input_data">
+    <query>index=* sourcetype="zscaler:api:zpa"
+| stats latest(_time) as _time
+| eval earliest = round(relative_time(_time,"-5min"))
+| rename _time as latest</query>
+    <done>
+      <condition>
+        <set token="data_earliest">$result.earliest$</set>
+        <set token="data_latest">$result.latest$</set>
+      </condition>
+    </done>
+  </search>
+  <fieldset submitButton="false"></fieldset>
+  <row>
+    <panel>
+      <title>Application Segments - Details</title>
+      <input type="text" token="filter_domain_names_regexp">
+        <label>Domain names (regexp)</label>
+        <default>.*</default>
+      </input>
+      <table>
+        <title>Click on one application segments to filter on the below access policies to check which one is used</title>
+        <search>
+          <query>index=* source="zscalerapi:zpa:app_segments"
+| eval tcp_ports = mvzip('tcp_port_range{}.from','tcp_port_range{}.to',"-"), tcp_ports = mvmap(tcp_ports,"(TCP) "+tcp_ports), udp_ports = mvzip('udp_port_range{}.from','udp_port_range{}.to',"-"), udp_ports = mvmap(udp_ports,"(UDP) "+udp_ports), ports = mvappend(tcp_ports,udp_ports)
+| where match('domain_names{}',"$filter_domain_names_regexp$")
+| stats values(domain_names{}) as domain_names, values(ports) as ports by name
+| rename name as "Name", domain_names as "Domain names", ports as "Ports"</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="filter_app_segment">$row.Name$</set>
+          <set token="form.filter_app_segment">$row.Name$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Access policies - Details</title>
+      <input type="dropdown" token="filter_rule_name">
+        <label>Rule name</label>
+        <fieldForLabel>name</fieldForLabel>
+        <fieldForValue>name</fieldForValue>
+        <search>
+          <query>index=* source="zscalerapi:zpa:policies*" policy_type=1
+| stats count by name</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+        </search>
+        <choice value="*">Any</choice>
+        <default>*</default>
+      </input>
+      <input type="dropdown" token="filter_app_segment">
+        <label>Application Segment</label>
+        <fieldForLabel>name</fieldForLabel>
+        <fieldForValue>name</fieldForValue>
+        <search>
+          <query>index=* source="zscalerapi:zpa:app_segments"
+| stats count by name</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+        </search>
+        <choice value="*">Any</choice>
+        <default>*</default>
+      </input>
+      <input type="dropdown" token="filter_saml">
+        <label>SAML</label>
+        <fieldForLabel>saml</fieldForLabel>
+        <fieldForValue>saml</fieldForValue>
+        <search>
+          <query>index=* source="zscalerapi:zpa:policies*" policy_type=1
+| eval conditions = mvzip('conditions{}.operands{}.rhs','conditions{}.operands{}.object_type',";;"), saml = mvfilter(match(conditions,";;SAML$$")), saml = mvmap(saml,mvindex(split(saml,";;"),0))
+| stats count by saml</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+        </search>
+        <choice value="*">Any</choice>
+        <default>*</default>
+      </input>
+      <table>
+        <search>
+          <query>index=* source="zscalerapi:zpa:policies*" policy_type=1
+| eval conditions = mvzip('conditions{}.operands{}.name',mvzip('conditions{}.operands{}.rhs','conditions{}.operands{}.object_type',";;"),";;"), apps = mvfilter(match(conditions,";;APP$$")), apps = mvmap(apps,mvindex(split(apps,";;"),0)), saml = mvfilter(match(conditions,";;SAML$$")), saml = mvmap(saml,mvindex(split(saml,";;"),0)+" ("+mvindex(split(saml,";;"),1)+")")
+| fillnull value="-" apps saml
+| search name = "$filter_rule_name$" AND apps = "$filter_app_segment$" AND saml = "$filter_saml$"
+| sort 0 rule_order
+| table rule_order, name, action, saml, apps
+| rename rule_order as "Rule Order", name as "Name", action as "Rule Action", apps as "Application Segments", saml as "SAML"</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Rule Action">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+        <format type="number" field="Rule Order">
+          <option name="precision">0</option>
+          <option name="unit">#</option>
+          <option name="unitPosition">before</option>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

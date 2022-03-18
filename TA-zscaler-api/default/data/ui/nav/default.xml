@@ -1,8 +1,11 @@
 <nav search_view="search" color="#009AD8">
   <view name="inputs" default="true" />
   <view name="configuration"/>
-  <collection label="User Guide">
-    <view name="zpa_user_guide"/>
+  <collection label="ZPA Overview">
+    <view name="zpa__policies"/>
+  </collection>
+  <collection label="Admin Guide">
+    <view name="zpa_admin_guide"/>
   </collection>  
   <view name="audit_logs"/>
   <collection label="Other">

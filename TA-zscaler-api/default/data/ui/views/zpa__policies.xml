@@ -17,6 +17,19 @@
   <row>
     <panel>
       <title>Application Segments - Details</title>
+      <input type="dropdown" token="filter_segment_group">
+        <label>Segment Group</label>
+        <fieldForLabel>segment_group_name</fieldForLabel>
+        <fieldForValue>segment_group_name</fieldForValue>
+        <search>
+          <query>index=* source="zscalerapi:zpa:app_segments"
+| stats count by segment_group_name</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+        </search>
+        <choice value="*">Any</choice>
+        <default>*</default>
+      </input>
       <input type="text" token="filter_domain_names_regexp">
         <label>Domain names (regexp)</label>
         <default>.*</default>
@@ -26,9 +39,10 @@
         <search>
           <query>index=* source="zscalerapi:zpa:app_segments"
 | eval tcp_ports = mvzip('tcp_port_range{}.from','tcp_port_range{}.to',"-"), tcp_ports = mvmap(tcp_ports,"(TCP) "+tcp_ports), udp_ports = mvzip('udp_port_range{}.from','udp_port_range{}.to',"-"), udp_ports = mvmap(udp_ports,"(UDP) "+udp_ports), ports = mvappend(tcp_ports,udp_ports)
+| search segment_group_name="$filter_segment_group$"
 | where match('domain_names{}',"$filter_domain_names_regexp$")
-| stats values(domain_names{}) as domain_names, values(ports) as ports by name
-| rename name as "Name", domain_names as "Domain names", ports as "Ports"</query>
+| stats values(segment_group_name) as segment_group_name, values(domain_names{}) as domain_names, values(ports) as ports by name
+| rename name as "Name", domain_names as "Domain names", ports as "Ports", segment_group_name as "Segment Group"</query>
           <earliest>$data_earliest$</earliest>
           <latest>$data_latest$</latest>
           <sampleRatio>1</sampleRatio>
@@ -37,13 +51,20 @@
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">cell</option>
         <option name="percentagesRow">false</option>
-        <option name="refresh.display">progressbar</option>
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
+        <format type="color" field="Segment Group">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
         <drilldown>
           <set token="filter_app_segment">$row.Name$</set>
           <set token="form.filter_app_segment">$row.Name$</set>
+          <set token="filter_segment_group">$row.Segment Group$</set>
+          <set token="form.filter_segment_group">$row.Segment Group$</set>
+          <set token="operand">OR</set>
+          <set token="form.operand">OR</set>
         </drilldown>
       </table>
     </panel>
@@ -64,6 +85,28 @@
         <choice value="*">Any</choice>
         <default>*</default>
       </input>
+      <input type="dropdown" token="filter_saml">
+        <label>SAML</label>
+        <fieldForLabel>saml</fieldForLabel>
+        <fieldForValue>saml_name</fieldForValue>
+        <search>
+          <query>index=* source="zscalerapi:zpa:policies*" policy_type=1
+| eval conditions = mvzip('conditions{}.operands{}.name',mvzip('conditions{}.operands{}.rhs','conditions{}.operands{}.object_type',";;"),";;"), saml = mvfilter(match(conditions,";;SAML$$")), saml = mvmap(saml,mvindex(split(saml,";;"),1)+";;"+mvindex(split(saml,";;"),0)+" ("+mvindex(split(saml,";;"),1)+")")
+| mvexpand saml
+| eval saml = split(saml,";;"), saml_name = mvindex(saml,1), saml = mvindex(saml,0)
+| stats count by saml, saml_name</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+        </search>
+        <choice value="*">Any</choice>
+        <default>*</default>
+      </input>
+      <input type="radio" token="operand">
+        <label>Operand between Application Segment and Segment Group filters</label>
+        <choice value="OR">OR</choice>
+        <choice value="AND">AND</choice>
+        <default>AND</default>
+      </input>
       <input type="dropdown" token="filter_app_segment">
         <label>Application Segment</label>
         <fieldForLabel>name</fieldForLabel>
@@ -77,14 +120,13 @@
         <choice value="*">Any</choice>
         <default>*</default>
       </input>
-      <input type="dropdown" token="filter_saml">
-        <label>SAML</label>
-        <fieldForLabel>saml</fieldForLabel>
-        <fieldForValue>saml</fieldForValue>
+      <input type="dropdown" token="filter_segment_group">
+        <label>Segment Group</label>
+        <fieldForLabel>name</fieldForLabel>
+        <fieldForValue>name</fieldForValue>
         <search>
-          <query>index=* source="zscalerapi:zpa:policies*" policy_type=1
-| eval conditions = mvzip('conditions{}.operands{}.rhs','conditions{}.operands{}.object_type',";;"), saml = mvfilter(match(conditions,";;SAML$$")), saml = mvmap(saml,mvindex(split(saml,";;"),0))
-| stats count by saml</query>
+          <query>index=* source="zscalerapi:zpa:segment_groups*"
+| stats count by name</query>
           <earliest>$data_earliest$</earliest>
           <latest>$data_latest$</latest>
         </search>
@@ -94,12 +136,12 @@
       <table>
         <search>
           <query>index=* source="zscalerapi:zpa:policies*" policy_type=1
-| eval conditions = mvzip('conditions{}.operands{}.name',mvzip('conditions{}.operands{}.rhs','conditions{}.operands{}.object_type',";;"),";;"), apps = mvfilter(match(conditions,";;APP$$")), apps = mvmap(apps,mvindex(split(apps,";;"),0)), saml = mvfilter(match(conditions,";;SAML$$")), saml = mvmap(saml,mvindex(split(saml,";;"),0)+" ("+mvindex(split(saml,";;"),1)+")")
-| fillnull value="-" apps saml
-| search name = "$filter_rule_name$" AND apps = "$filter_app_segment$" AND saml = "$filter_saml$"
+| eval conditions = mvzip('conditions{}.operands{}.name',mvzip('conditions{}.operands{}.rhs','conditions{}.operands{}.object_type',";;"),";;"), apps = mvfilter(match(conditions,";;APP$$")), apps = mvmap(apps,mvindex(split(apps,";;"),0)), saml = mvfilter(match(conditions,";;SAML$$")), saml = mvmap(saml,mvindex(split(saml,";;"),0)+" ("+mvindex(split(saml,";;"),1)+")"), app_groups = mvfilter(match(conditions,";;APP_GROUP$$")), app_groups = mvmap(app_groups,mvindex(split(app_groups,";;"),0))
+| fillnull value="-" apps saml app_groups
+| search name = "$filter_rule_name$" AND (apps = "$filter_app_segment$" $operand$ app_groups = "$filter_segment_group$") AND saml = "$filter_saml$"
 | sort 0 rule_order
-| table rule_order, name, action, saml, apps
-| rename rule_order as "Rule Order", name as "Name", action as "Rule Action", apps as "Application Segments", saml as "SAML"</query>
+| table rule_order, name, action, saml, apps, app_groups
+| rename rule_order as "Rule Order", name as "Name", action as "Rule Action", apps as "Application Segments", saml as "SAML", app_groups as "Segment Group"</query>
           <earliest>$data_earliest$</earliest>
           <latest>$data_latest$</latest>
           <sampleRatio>1</sampleRatio>

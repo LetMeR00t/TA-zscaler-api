@@ -6,9 +6,13 @@ import sys
 import time
 import datetime
 import json
+import hashlib
 
 # Import custom librairies
 from pyzscaler import ZPA
+import restfly
+
+CUSTOMER_ID_HASHED = None
 
 '''
     IMPORTANT
@@ -27,7 +31,7 @@ def validate_input(helper, definition):
     # This example accesses the modular input variable
     # client_account = definition.parameters.get('client_account', None)
     if(definition.parameters.get('client_account', None) is None):
-        helper.log_error("[ZPA] #1 - No client account was provided")
+        helper.log_error("[ZPA-E-NO_CLIENT_ACCOUNT] No client account was provided")
         sys.exit(1)
     pass
 
@@ -129,12 +133,20 @@ def collect_events(helper, ew):
     '''
     helper.log_info("[ZPA-I-START-COLLECT] Start to recover events from Zscaler ZPA")
     
+    global CUSTOMER_ID_HASHED
+    
     # Get information about the Splunk input
     opt_items = helper.get_arg('items')
     
     # Get credentials for Zscaler
-    client = helper.get_user_credential_by_id("account0")
-    customer_id = helper.get_global_setting("customer_id")
+    client = helper.get_arg('client_account')
+    customer_id = helper.get_global_setting("zpa_customer_id")
+    if customer_id is None or customer_id == "":
+        helper.log_error("[ZPA-E-CUSTOMER_ID_NULL] No Customer ID was provided, check your configuration")
+        sys.exit(1)
+        
+    # Hash the Customer ID
+    CUSTOMER_ID_HASHED = hashlib.sha256(customer_id.encode()).hexdigest()[:8]
     
     ITEMS_MAP = {
         "app_segments": "list_segments",
@@ -152,88 +164,96 @@ def collect_events(helper, ew):
     }
     
     # Instanciate the ZPA object with given inputs
-    zpa = ZPA(client_id=client["username"], client_secret=client["password"], customer_id=customer_id)
-    
+    try:
+        zpa = ZPA(client_id=client["username"], client_secret=client["password"], customer_id=customer_id)
+    except restfly.errors.UnauthorizedError as e:
+        helper.log_error("[ZPA-E-BAD_CREDENTIALS] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+        sys.exit(10)
     helper.log_debug("[ZPA-D-ZPA_OBJECT] Zscaler ZPA connection object is created successfully")
     
-    # Get items (simple methods)
-    for item in opt_items:
-        if item in ITEMS_MAP:
-            function = ITEMS_MAP[item]
-            all_data = getattr(getattr(zpa,item),function)()
-            for data in all_data:
-                write_to_splunk(helper, ew, item, data)
-            log(helper, item, all_data)
+    try:
+        # Get items (simple methods)
+        for item in opt_items:
+            if item in ITEMS_MAP:
+                function = ITEMS_MAP[item]
+                all_data = getattr(getattr(zpa,item),function)()
+                for data in all_data:
+                    write_to_splunk(helper, ew, item, data)
+                log(helper, item, all_data)
+        
+        # Get segment groups if specified (more complex, as we can have big segment groups)
+        if "segment_groups" in opt_items:
+            for data in zpa.segment_groups.list_groups():
+                applications = data["applications"]
+                del data["applications"]
+                for app in applications:
+                    data["application"] = app
+                    write_to_splunk(helper, ew, "segment_groups:"+str(data["id"]), data)
+                    log(helper, "segment_groups", data)
+                    
+        
+        # Get policies if specified (more complex)
+        if "policies" in opt_items:
+            for policy_name in ["access","timeout","client_forwarding","siem"]:
+                policy = zpa.policies.get_policy(policy_name)
+                write_to_splunk(helper, ew, "policies", policy)
+                log(helper, "policies", policy)
+                if policy_name != "siem":
+                    all_data = zpa.policies.list_rules(policy_name)
+                    for rule in all_data:
+                        write_to_splunk(helper, ew, "policies:rules", rule)
+                    log(helper, "policies:rules", all_data)
+                    
+        
+        # Get provisioning if specified (more complex)
+        if "provisioning" in opt_items:
+            for key in ["connector","service_edge"]:
+                provisioning = zpa.provisioning.list_provisioning_keys(key)
+                if provisioning != []:
+                    write_to_splunk(helper, ew, "provisioning", provisioning)
+                    log(helper, "provisioning", provisioning)
+                    
+                    
+        # Get SCIM attributes if specified (more complex)
+        if "scim_attributes" in opt_items:
+            for idp in zpa.idp.list_idps():
+                list_attributes = zpa.scim_attributes.list_attributes_by_idp(idp["id"])
+                if list_attributes != []:
+                    write_to_splunk(helper, ew, "scim_attributes", list_attributes)
+                    log(helper, "scim_attributes", list_attributes)
     
-    # Get segment groups if specified (more complex, as we can have big segment groups)
-    if "segment_groups" in opt_items:
-        for data in zpa.segment_groups.list_groups():
-            applications = data["applications"]
-            del data["applications"]
-            for app in applications:
-                data["application"] = app
-                write_to_splunk(helper, ew, "segment_groups:"+str(data["id"]), data)
-                log(helper, "segment_groups", data)
-                
     
-    # Get policies if specified (more complex)
-    if "policies" in opt_items:
-        for policy_name in ["access","timeout","client_forwarding","siem"]:
-            policy = zpa.policies.get_policy(policy_name)
-            write_to_splunk(helper, ew, "policies", policy)
-            log(helper, "policies", policy)
-            if policy_name != "siem":
-                all_data = zpa.policies.list_rules(policy_name)
-                for rule in all_data:
-                    write_to_splunk(helper, ew, "policies:rules", rule)
-                log(helper, "policies:rules", all_data)
-                
+        # Get SCIM groups if specified (more complex)
+        if "scim_groups" in opt_items:
+            for idp in zpa.idp.list_idps():
+                list_groups = zpa.scim_groups.list_groups(idp["id"])
+                if list_groups != []:
+                    write_to_splunk(helper, ew, "scim_groups", list_groups)
+                    log(helper, "scim_groups", list_groups)
     
-    # Get provisioning if specified (more complex)
-    if "provisioning" in opt_items:
-        for key in ["connector","service_edge"]:
-            provisioning = zpa.provisioning.list_provisioning_keys(key)
-            if provisioning != []:
-                write_to_splunk(helper, ew, "provisioning", provisioning)
-                log(helper, "provisioning", provisioning)
-                
-                
-    # Get SCIM attributes if specified (more complex)
-    if "scim_attributes" in opt_items:
-        for idp in zpa.idp.list_idps():
-            list_attributes = zpa.scim_attributes.list_attributes_by_idp(idp["id"])
-            if list_attributes != []:
-                write_to_splunk(helper, ew, "scim_attributes", list_attributes)
-                log(helper, "scim_attributes", list_attributes)
-
-
-    # Get SCIM groups if specified (more complex)
-    if "scim_groups" in opt_items:
-        for idp in zpa.idp.list_idps():
-            list_groups = zpa.scim_groups.list_groups(idp["id"])
-            if list_groups != []:
-                write_to_splunk(helper, ew, "scim_groups", list_groups)
-                log(helper, "scim_groups", list_groups)
-
-
-    # Get service edges if specified (more complex)
-    if "service_edges" in opt_items:
-        all_data = zpa.service_edges.list_service_edges()
-        for service_edges in all_data:
-            write_to_splunk(helper, ew, "service_edges", service_edges)
-        log(helper, "service_edges", list_groups)
-        all_data = zpa.service_edges.list_service_edge_groups()
-        for service_edge_groups in all_data:
-            write_to_splunk(helper, ew, "service_edge_groups", service_edge_groups)
-        log(helper, "service_edge_groups", list_groups)
     
-    helper.log_info("[ZPA-I-EVENTS-CREATED] Events from Zscaler ZPA are recovered")
+        # Get service edges if specified (more complex)
+        if "service_edges" in opt_items:
+            all_data = zpa.service_edges.list_service_edges()
+            for service_edges in all_data:
+                write_to_splunk(helper, ew, "service_edges", service_edges)
+            log(helper, "service_edges", list_groups)
+            all_data = zpa.service_edges.list_service_edge_groups()
+            for service_edge_groups in all_data:
+                write_to_splunk(helper, ew, "service_edge_groups", service_edge_groups)
+            log(helper, "service_edge_groups", list_groups)
+    except restfly.errors.BadRequestError as e:
+        helper.log_error("[ZPA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+        sys.exit(15)
+        
+    helper.log_info("[ZPA-I-END-COLLECT] 🟢 Events from Zscaler ZPA are recovered")
 
 
 
 # This function is writing events in Splunk
 def write_to_splunk(helper, ew, item, data):
-    event = helper.new_event(source="zscalerapi:zpa:"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
+    # Add which Zscaler instance
+    event = helper.new_event(source="zpa:"+CUSTOMER_ID_HASHED+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
     ew.write_event(event)
     
     

@@ -15,7 +15,7 @@
       <title>Audit logs : Modular input regarding Zscaler API (Inputs)</title>
       <table>
         <search>
-          <query>index=_internal source="*ta_zscaler_api_zscaler_zpa_configurations.log"
+          <query>index=_internal source IN ("*ta_zscaler_api_zscaler_zia_configurations.log","*ta_zscaler_api_zscaler_zpa_configurations.log")
 | rex field="_raw" "^\d+\-\d+\-\d+ \d+:\d+:\d+,\d+ (?&lt;level&gt;[^ ]+) pid=(?&lt;pid&gt;[^ ]+) tid=[^ ]+ file=[^ ]+ \| (?&lt;signature&gt;.*)"
 | sort 0 -_time
 | table _time pid level signature
@@ -25,10 +25,8 @@
           <sampleRatio>1</sampleRatio>
         </search>
         <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
         <format type="color" field="Level">
-          <colorPalette type="sharedList"></colorPalette>
-          <scale type="sharedCategory"></scale>
+          <colorPalette type="map">{"ERROR":#DC4E41,"WARNING":#F1813F,"INFO":#62B3B2,"DEBUG":#708794}</colorPalette>
         </format>
         <format type="color" field="PID">
           <colorPalette type="sharedList"></colorPalette>

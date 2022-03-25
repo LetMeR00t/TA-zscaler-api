@@ -17,7 +17,7 @@
   <row>
     <panel>
       <title>Application Segments - Details</title>
-      <input type="dropdown" token="filter_segment_group">
+      <input type="dropdown" token="filter_segment_group_app_segment">
         <label>Segment Group</label>
         <fieldForLabel>segment_group_name</fieldForLabel>
         <fieldForValue>segment_group_name</fieldForValue>
@@ -39,7 +39,7 @@
         <search>
           <query>index=* source="zscalerapi:zpa:app_segments"
 | eval tcp_ports = mvzip('tcp_port_range{}.from','tcp_port_range{}.to',"-"), tcp_ports = mvmap(tcp_ports,"(TCP) "+tcp_ports), udp_ports = mvzip('udp_port_range{}.from','udp_port_range{}.to',"-"), udp_ports = mvmap(udp_ports,"(UDP) "+udp_ports), ports = mvappend(tcp_ports,udp_ports)
-| search segment_group_name="$filter_segment_group$"
+| search segment_group_name="$filter_segment_group_app_segment$"
 | where match('domain_names{}',"$filter_domain_names_regexp$")
 | stats values(segment_group_name) as segment_group_name, values(domain_names{}) as domain_names, values(ports) as ports by name
 | rename name as "Name", domain_names as "Domain names", ports as "Ports", segment_group_name as "Segment Group"</query>

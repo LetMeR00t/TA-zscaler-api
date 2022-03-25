@@ -71,8 +71,12 @@ def process_event(helper, *args, **kwargs):
     user_account = helper.get_user_credential("<account_name>")
 
     # The following example gets the setup parameters and prints them to the log
-    customer_id = helper.get_global_setting("customer_id")
-    helper.log_info("customer_id={}".format(customer_id))
+    zia_api_key = helper.get_global_setting("zia_api_key")
+    helper.log_info("zia_api_key={}".format(zia_api_key))
+    zia_cloud = helper.get_global_setting("zia_cloud")
+    helper.log_info("zia_cloud={}".format(zia_cloud))
+    zpa_customer_id = helper.get_global_setting("zpa_customer_id")
+    helper.log_info("zpa_customer_id={}".format(zpa_customer_id))
 
     # The following example gets the alert action parameters and prints them to the log
     account_name = helper.get_param("account_name")
@@ -188,7 +192,7 @@ def process_event(helper, *args, **kwargs):
                 helper.log_error("[ZPA-E-ACTION] Selected action is not supported by this custom alert action")
                 sys.exit(10)
     except restfly.errors.BadRequestError as e:
-        helper.log_error("[ZPA-E-BAD-REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+        helper.log_error("[ZPA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
         sys.exit(15)
 
     return 0

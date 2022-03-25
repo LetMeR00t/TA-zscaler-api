@@ -8,7 +8,7 @@
   <search id="last_input_data">
     <query>index=* sourcetype="zscaler:api:zpa"
 | stats latest(_time) as _time
-| eval earliest = round(relative_time(_time,"-5min"))
+| eval earliest = round(relative_time(_time,"-24h"))
 | rename _time as latest</query>
     <done>
       <condition>
@@ -19,7 +19,7 @@
   </search>
   <fieldset submitButton="false">
     <input type="text" token="account">
-      <label>Account username (under "Configuration")</label>
+      <label>Username (under "Configuration:Username")</label>
     </input>
   </fieldset>
   <row>

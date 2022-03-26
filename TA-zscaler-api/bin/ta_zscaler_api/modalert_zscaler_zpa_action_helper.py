@@ -125,7 +125,7 @@ def process_event(helper, *args, **kwargs):
     if client is None:
         helper.log_error("[ZPA-E-AUTH-ACCOUNT] Account can't be found. Did you configured the account under Configuration ? Did you mentionned the account username to use when raising this action ?")
         sys.exit(1)
-    helper.log_debug("[ZPA-D-AUTH] Authentication will be done using the account \""+helper.get_param("account_name")+"\"")
+    helper.log_debug("[ZPA-D-AUTH] Authentication will be done using the account \""+str(client["username"])+"\"")
     customer_id = helper.get_global_setting("customer_id")
     if customer_id is None:
         helper.log_error("[ZPA-E-AUTH-CUSTOMER-ID] Customer ID can't be found. Did you configured it under Configuration ?")

@@ -1,0 +1,85 @@
+<form version="1.1">
+  <label>ZIA (Zscaler Internet Access)</label>
+  <description>This dashboard is used to summarize how you could interact with ZIA</description>
+  <init>
+    <set token="ref_url">https://github.com/mitchos/pyZscaler/blob/1.1.0/pyzscaler</set>
+    <set token="ref_tool">zia</set>
+  </init>
+  <search id="last_input_data">
+    <query>index=* sourcetype="zscaler:api:zia" source="zia:$zscaler_instance$:*"
+| rex field=source "z(?:i|p)a:(?&lt;instance&gt;[^:]+):(?&lt;uid&gt;[^:]+):" 
+| stats earliest(_time) as earliest, latest(_time) as latest by uid
+| eval latest = relative_time(latest,"+1s")
+| sort 0 -latest
+| head 1</query>
+    <done>
+      <condition>
+        <set token="data_uid">$result.uid$</set>
+        <set token="data_earliest">$result.earliest$</set>
+        <set token="data_latest">$result.latest$</set>
+      </condition>
+    </done>
+  </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="zscaler_instance">
+      <label>Zscaler instance</label>
+      <fieldForLabel>instance</fieldForLabel>
+      <fieldForValue>instance</fieldForValue>
+      <search>
+        <query>index=* sourcetype="zscaler:api:zia"
+| rex field=source "zia:(?&lt;instance&gt;[^:]+):"
+| stats count by instance</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="dropdown" token="account">
+      <label>Account Username</label>
+      <fieldForLabel>username</fieldForLabel>
+      <fieldForValue>username</fieldForValue>
+      <search>
+        <query>| rest /servicesNS/nobody/TA-zscaler-api/configs/conf-ta_zscaler_api_account
+| table username</query>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Add URLs to category</title>
+      <input type="dropdown" token="url_categories_add_category">
+        <label>[ADD] Category</label>
+        <fieldForLabel>configured_name</fieldForLabel>
+        <fieldForValue>id</fieldForValue>
+        <search>
+          <query>index=* sourcetype="zscaler:api:zia" source="zia:$zscaler_instance$:$data_uid$:url_category:*"
+| eval configured_name = coalesce(configured_name,id)
+| stats count by id, configured_name
+| sort 0 configured_name</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+        </search>
+      </input>
+      <input type="text" token="url_categories_add_urls">
+        <label>[ADD] URLs</label>
+      </input>
+      <html>
+        <h2 style="color:#56BA56">
+          <b>
+            <i>How to add URLs to an existing category ?</i>
+          </b>
+        </h2>
+        <ul>
+          <li>
+            <b>Category</b>: $url_categories_add_category$</li>
+          <li>
+            <b>URLs</b> (separated by ","): $url_categories_add_urls$</li>
+        </ul>
+        <br/>
+        <p>
+          <b>Add URLs to an existing category using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/url_categories.py#L215" target="_blank">url_categories.py#L215</a>)</p> 
+        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zpa_action param.account_username="$account$" param.action="add_urls_to_category"</p>
+        <br/>
+      </html>
+    </panel>
+  </row>
+</form>

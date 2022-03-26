@@ -10,6 +10,8 @@
 This TA allows to **add an integration** between [Zscaler](https://www.zscaler.com/) and Splunk. It lets you:
 * ZIA
   * Get all configurations for Zscaler ZIA periodically using a HTTP input within Splunk
+  * Interact with Zscaler ZIA using custom alert actions
+    * Add URLs to an existing category
 * ZPA
   * Get all configurations for Zscaler ZPA periodically using a HTTP input within Splunk
   * Interact with Zscaler ZPA using custom alert actions

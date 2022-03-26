@@ -207,13 +207,17 @@ def collect_events(helper, ew):
                 urls_lists = [data["urls"][i:i+MAXIMUM_URL_PER_CATEGORY] for i in range(0, len(data["urls"]), MAXIMUM_URL_PER_CATEGORY)]
                 total_urls = data["custom_urls_count"]
                 page = 0
-                while page < len(urls_lists):
-                    data["urls"] = urls_lists[page]
-                    data["custom_urls_count"] = len(data["urls"])
-                    data["custom_urls_total"] = total_urls
+                if len(urls_lists) > 0:
+                    while page < len(urls_lists):
+                        data["urls"] = urls_lists[page]
+                        data["custom_urls_count"] = len(data["urls"])
+                        data["custom_urls_total"] = total_urls
+                        write_to_splunk(helper, ew, "url_category:"+str(data["id"]), data)
+                        log(helper, "url_category:"+str(data["id"]), data)
+                        page += 1
+                else:
                     write_to_splunk(helper, ew, "url_category:"+str(data["id"]), data)
                     log(helper, "url_category:"+str(data["id"]), data)
-                    page += 1
                     
         # Get Firewall rules if specified (more complex, as we can have a lot of IPs defined in one rule)
         if "firewall_rules" in opt_items:

@@ -9,6 +9,7 @@
     <query>index=* sourcetype="zscaler:api:zpa" source="zpa:$zscaler_instance$:*"
 | rex field=source "z(?:i|p)a:(?&lt;instance&gt;[^:]+):(?&lt;uid&gt;[^:]+):" 
 | stats earliest(_time) as earliest, latest(_time) as latest by uid
+| eval latest = relative_time(latest,"+1s")
 | sort 0 -latest
 | head 1</query>
     <done>
@@ -127,7 +128,7 @@
         <br/>
         <p>
           <b>Create an application segment using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/app_segments.py#L61" target="_blank">app_segments.py#L61</a>)</p> 
-        <p>| makeresults | eval name = "$app_segment_create_name$", domain_names = "$app_segment_create_domain_names$", $app_segment_create_port_type$_ports = "$app_segment_create_tcp_ports$", bypass_type = "$app_segment_create_bypass_type$", segment_group_id = "$app_segment_create_segment_group_id$", server_group_ids = "$app_segment_create_server_group_ids$", description = "$app_segment_create_description$" | sendalert zscaler_zpa_action param.account_name="$account$" param.action="create_app_segment"</p>
+        <p>| makeresults | eval name = "$app_segment_create_name$", domain_names = "$app_segment_create_domain_names$", $app_segment_create_port_type$_ports = "$app_segment_create_tcp_ports$", bypass_type = "$app_segment_create_bypass_type$", segment_group_id = "$app_segment_create_segment_group_id$", server_group_ids = "$app_segment_create_server_group_ids$", description = "$app_segment_create_description$" | sendalert zscaler_zpa_action param.account_username="$account$" param.action="create_app_segment"</p>
         <br/>
       </html>
     </panel>
@@ -160,7 +161,7 @@
         <br/>
         <p>
           <b>Update an application segment using this command</b>: (here, only the name and description) (Ref: <a href="$ref_url$/$ref_tool$/app_segments.py#L150" target="_blank">app_segments.py#L150</a>)</p>
-        <p>| makeresults | eval segment_id = "$app_segment_update_app_segment_id$" | sendalert zscaler_zpa_action param.account_name="$account$" param.action="update_app_segment"</p>
+        <p>| makeresults | eval segment_id = "$app_segment_update_app_segment_id$" | sendalert zscaler_zpa_action param.account_username="$account$" param.action="update_app_segment"</p>
         <br/>
       </html>
     </panel>
@@ -188,7 +189,7 @@
         <br/>
         <p>
           <b>Delete an application segment using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/app_segments.py#L44" target="_blank">app_segments.py#L44</a>)</p>
-        <p>| makeresults | eval segment_id = "$app_segment_delete_app_segment_id$" | sendalert zscaler_zpa_action param.account_name="$account$" param.action="delete_app_segment"</p>
+        <p>| makeresults | eval segment_id = "$app_segment_delete_app_segment_id$" | sendalert zscaler_zpa_action param.account_username="$account$" param.action="delete_app_segment"</p>
       </html>
     </panel>
   </row>

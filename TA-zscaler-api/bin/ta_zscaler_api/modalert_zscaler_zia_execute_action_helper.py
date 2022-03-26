@@ -99,6 +99,15 @@ def process_event(helper, *args, **kwargs):
         sys.exit(10)
     
     helper.log_debug("[ZIA-D-ZIA_OBJECT] Zscaler ZPA connection object is created successfully")
+    
+    # Check the activate status before submitting changes
+    status = zia.config.status()
+    if status != "ACTIVE":
+        helper.log_error("[ZIA-E-CHANGE_PENDING_OR_INPROGRESS] 🔴 Your request will not be processed as changes are pending or in progress in Zscaler ZIA. By precaution, no action will be done to avoid pushing any wrong change that is not yet validated")
+        sys.exit(11)
+    else:
+        helper.log_info("[ZIA-I-CHECK_CHANGES] No change is pending or in progress in ZIA, process the action")
+    
     try:
         for event in events:
             if action == "add_urls_to_category":
@@ -115,7 +124,11 @@ def process_event(helper, *args, **kwargs):
     except restfly.errors.BadRequestError as e:
         helper.log_error("[ZIA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
         sys.exit(15)
-
+    
+    # Activate the configuration
+    status = zia.config.activate()
+    helper.log_info("[ZIA-I-AUTOMATIC_ACTIVATE] Configuration has been automatically activated")
+    
     return 0
 
 # This function is used to validate inputs for the given function

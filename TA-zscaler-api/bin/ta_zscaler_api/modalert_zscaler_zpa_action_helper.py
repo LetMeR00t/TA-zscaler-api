@@ -79,8 +79,8 @@ def process_event(helper, *args, **kwargs):
     helper.log_info("zpa_customer_id={}".format(zpa_customer_id))
 
     # The following example gets the alert action parameters and prints them to the log
-    account_name = helper.get_param("account_name")
-    helper.log_info("account_name={}".format(account_name))
+    account_username = helper.get_param("account_username")
+    helper.log_info("account_username={}".format(account_username))
 
     action = helper.get_param("action")
     helper.log_info("action={}".format(action))
@@ -121,9 +121,9 @@ def process_event(helper, *args, **kwargs):
     global REF_FILE
     
     # Get Zscaler information
-    client = helper.get_user_credential(helper.get_param("account_name"))
+    client = helper.get_user_credential(helper.get_param("account_username"))
     if client is None:
-        helper.log_error("[ZPA-E-AUTH-ACCOUNT] Account can't be found. Did you configured the account under Configuration ? Did you mentionned the account name to use when raising this action ?")
+        helper.log_error("[ZPA-E-AUTH-ACCOUNT] Account can't be found. Did you configured the account under Configuration ? Did you mentionned the account username to use when raising this action ?")
         sys.exit(1)
     helper.log_debug("[ZPA-D-AUTH] Authentication will be done using the account \""+helper.get_param("account_name")+"\"")
     customer_id = helper.get_global_setting("customer_id")

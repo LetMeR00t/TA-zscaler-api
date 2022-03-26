@@ -12,7 +12,8 @@ import hashlib
 from pyzscaler import ZPA
 import restfly
 
-CUSTOMER_ID_HASHED = None
+INPUT_UID = None
+ZSCALER_INSTANCE = None
 
 '''
     IMPORTANT
@@ -131,9 +132,16 @@ def collect_events(helper, ew):
         event = helper.new_event(source=input_type, index=helper.get_output_index(stanza_name), sourcetype=helper.get_sourcetype(stanza_name), data=data)
         ew.write_event(event)
     '''
-    helper.log_info("[ZPA-I-START-COLLECT] Start to recover events from Zscaler ZPA")
+    helper.log_info("[ZPA-I-START-COLLECT] Start to recover configuration events from Zscaler ZPA")
+
+    global ZSCALER_INSTANCE
+    global INPUT_UID
     
-    global CUSTOMER_ID_HASHED
+    # Set the Zscaler instance name
+    ZSCALER_INSTANCE = list(helper.get_input_stanza().keys())[0]
+    
+    # Calculate a unique ID for the given input event recovery
+    INPUT_UID = hashlib.sha256(str(datetime.datetime.now()).encode()).hexdigest()[:8]
     
     # Get information about the Splunk input
     opt_items = helper.get_arg('items')
@@ -144,9 +152,6 @@ def collect_events(helper, ew):
     if customer_id is None or customer_id == "":
         helper.log_error("[ZPA-E-CUSTOMER_ID_NULL] No Customer ID was provided, check your configuration")
         sys.exit(1)
-        
-    # Hash the Customer ID
-    CUSTOMER_ID_HASHED = hashlib.sha256(customer_id.encode()).hexdigest()[:8]
     
     ITEMS_MAP = {
         "app_segments": "list_segments",
@@ -246,14 +251,14 @@ def collect_events(helper, ew):
         helper.log_error("[ZPA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
         sys.exit(15)
         
-    helper.log_info("[ZPA-I-END-COLLECT] 🟢 Events from Zscaler ZPA are recovered")
+    helper.log_info("[ZPA-I-END-COLLECT] 🟢 Events from Zscaler ZPA ("+str(opt_items)+") are recovered")
 
 
 
 # This function is writing events in Splunk
 def write_to_splunk(helper, ew, item, data):
     # Add which Zscaler instance
-    event = helper.new_event(source="zpa:"+CUSTOMER_ID_HASHED+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
+    event = helper.new_event(source="zpa:"+ZSCALER_INSTANCE+":"+INPUT_UID+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
     ew.write_event(event)
     
     

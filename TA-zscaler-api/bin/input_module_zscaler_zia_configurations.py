@@ -12,7 +12,8 @@ import hashlib
 from pyzscaler import ZIA
 import restfly
 
-API_KEY_HASHED = None
+INPUT_UID = None
+ZSCALER_INSTANCE = None
 MAXIMUM_URL_PER_CATEGORY = 200
 MAXIMUM_DEST_IP_PER_RULE = 300
 
@@ -138,7 +139,14 @@ def collect_events(helper, ew):
     '''
     helper.log_info("[ZIA-I-START-COLLECT] Start to recover configuration events from Zscaler ZIA")
     
-    global API_KEY_HASHED
+    global ZSCALER_INSTANCE
+    global INPUT_UID
+    
+    # Set the Zscaler instance name
+    ZSCALER_INSTANCE = list(helper.get_input_stanza().keys())[0]
+    
+    # Calculate a unique ID for the given input event recovery
+    INPUT_UID = hashlib.sha256(str(datetime.datetime.now()).encode()).hexdigest()[:8]
     
     # Get information about the Splunk input
     opt_items = helper.get_arg('items')
@@ -154,9 +162,6 @@ def collect_events(helper, ew):
     if cloud is None or cloud == "":
         helper.log_error("[ZIA-E-CLOUD_NULL] No Cloud information was provided, check your configuration")
         sys.exit(1)
-        
-    # Hash the key
-    API_KEY_HASHED = hashlib.sha256(api_key.encode()).hexdigest()[:8]
 
     ITEMS_MAP = {
         "admin_users": {"key": "admin_and_role_management", "func": "list_users"},
@@ -317,7 +322,7 @@ def collect_events(helper, ew):
 
 # This function is writing events in Splunk
 def write_to_splunk(helper, ew, item, data):
-    event = helper.new_event(source="zia:"+API_KEY_HASHED+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
+    event = helper.new_event(source="zia:"+ZSCALER_INSTANCE+":"+INPUT_UID+":"+item, index=helper.get_output_index(), sourcetype=helper.get_sourcetype(), data=json.dumps(data))
     ew.write_event(event)
     
     

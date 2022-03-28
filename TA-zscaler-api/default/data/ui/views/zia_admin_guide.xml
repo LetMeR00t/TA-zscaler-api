@@ -77,7 +77,7 @@
         <br/>
         <p>
           <b>Add URLs to an existing category using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/url_categories.py#L215" target="_blank">url_categories.py#L215</a>)</p> 
-        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zpa_action param.account_username="$account$" param.action="add_urls_to_category"</p>
+        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zia_execute_action param.account_username="$account$" param.action="add_urls_to_category"</p>
         <br/>
       </html>
     </panel>

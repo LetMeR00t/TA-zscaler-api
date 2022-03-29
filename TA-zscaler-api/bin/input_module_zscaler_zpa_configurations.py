@@ -144,13 +144,14 @@ def collect_events(helper, ew):
     INPUT_UID = hashlib.sha256(str(datetime.datetime.now()).encode()).hexdigest()[:8]
     
     # Get information about the Splunk input
+    opt_instance = helper.get_arg('instance')
     opt_items = helper.get_arg('items')
     
     # Get credentials for Zscaler
     client = helper.get_arg('client_account')
-    customer_id = helper.get_global_setting("zpa_customer_id")
+    customer_id = helper.get_global_setting("instance_"+str(opt_instance)+"_zpa_customer_id")
     if customer_id is None or customer_id == "":
-        helper.log_error("[ZPA-E-CUSTOMER_ID_NULL] No Customer ID was provided, check your configuration")
+        helper.log_error("[ZPA-E-CUSTOMER_ID_NULL] No Customer ID was provided for instance n°"+str(opt_instance)+", check your configuration")
         sys.exit(1)
     
     ITEMS_MAP = {

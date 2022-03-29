@@ -6,8 +6,8 @@
     <set token="ref_tool">zia</set>
   </init>
   <search id="last_input_data">
-    <query>index=* sourcetype="zscaler:api:zia" source="zia:$zscaler_instance$:*"
-| rex field=source "z(?:i|p)a:(?&lt;instance&gt;[^:]+):(?&lt;uid&gt;[^:]+):" 
+    <query>index=* sourcetype="zscaler:api:zia" source="zia:$zscaler_input$:*"
+| rex field=source "z(?:i|p)a:(?&lt;input&gt;[^:]+):(?&lt;uid&gt;[^:]+):" 
 | stats earliest(_time) as earliest, latest(_time) as latest by uid
 | eval latest = relative_time(latest,"+1s")
 | sort 0 -latest
@@ -21,14 +21,21 @@
     </done>
   </search>
   <fieldset submitButton="false">
-    <input type="dropdown" token="zscaler_instance">
-      <label>Zscaler instance</label>
-      <fieldForLabel>instance</fieldForLabel>
-      <fieldForValue>instance</fieldForValue>
+    <input type="dropdown" token="instances">
+      <label>Instances</label>
+      <choice value="1">Instance 1</choice>
+      <choice value="2">Instance 2</choice>
+      <choice value="3">Instance 3</choice>
+      <default>1</default>
+    </input>
+    <input type="dropdown" token="zscaler_input">
+      <label>Zscaler Input</label>
+      <fieldForLabel>input</fieldForLabel>
+      <fieldForValue>input</fieldForValue>
       <search>
         <query>index=* sourcetype="zscaler:api:zia"
-| rex field=source "zia:(?&lt;instance&gt;[^:]+):"
-| stats count by instance</query>
+| rex field=source "zia:(?&lt;input&gt;[^:]+):"
+| stats count by input</query>
         <earliest>-24h@h</earliest>
         <latest>now</latest>
       </search>
@@ -51,7 +58,7 @@
         <fieldForLabel>configured_name</fieldForLabel>
         <fieldForValue>id</fieldForValue>
         <search>
-          <query>index=* sourcetype="zscaler:api:zia" source="zia:$zscaler_instance$:$data_uid$:url_category:*"
+          <query>index=* sourcetype="zscaler:api:zia" source="zia:$zscaler_input$:$data_uid$:url_category:*"
 | eval configured_name = coalesce(configured_name,id)
 | stats count by id, configured_name
 | sort 0 configured_name</query>
@@ -77,8 +84,9 @@
         <br/>
         <p>
           <b>Add URLs to an existing category using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/url_categories.py#L215" target="_blank">url_categories.py#L215</a>)</p> 
-        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zia_execute_action param.account_username="$account$" param.action="add_urls_to_category"</p>
+        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zia_execute_action param.instances=$instances$ param.account_usernames="{\"$instances$\": \"$account$\"}" param.action="add_urls_to_category"</p>
         <br/>
+        <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
       </html>
     </panel>
   </row>

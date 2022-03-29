@@ -32,16 +32,31 @@ def process_event(helper, *args, **kwargs):
     user_account = helper.get_user_credential("<account_name>")
 
     # The following example gets the setup parameters and prints them to the log
-    zia_api_key = helper.get_global_setting("zia_api_key")
-    helper.log_info("zia_api_key={}".format(zia_api_key))
-    zia_cloud = helper.get_global_setting("zia_cloud")
-    helper.log_info("zia_cloud={}".format(zia_cloud))
-    zpa_customer_id = helper.get_global_setting("zpa_customer_id")
-    helper.log_info("zpa_customer_id={}".format(zpa_customer_id))
+    instance_1_zia_api_key = helper.get_global_setting("instance_1_zia_api_key")
+    helper.log_info("instance_1_zia_api_key={}".format(instance_1_zia_api_key))
+    instance_1_zia_cloud = helper.get_global_setting("instance_1_zia_cloud")
+    helper.log_info("instance_1_zia_cloud={}".format(instance_1_zia_cloud))
+    instance_1_zpa_customer_id = helper.get_global_setting("instance_1_zpa_customer_id")
+    helper.log_info("instance_1_zpa_customer_id={}".format(instance_1_zpa_customer_id))
+    instance_2_zia_api_key = helper.get_global_setting("instance_2_zia_api_key")
+    helper.log_info("instance_2_zia_api_key={}".format(instance_2_zia_api_key))
+    instance_2_zia_cloud = helper.get_global_setting("instance_2_zia_cloud")
+    helper.log_info("instance_2_zia_cloud={}".format(instance_2_zia_cloud))
+    instance_2_zpa_customer_id = helper.get_global_setting("instance_2_zpa_customer_id")
+    helper.log_info("instance_2_zpa_customer_id={}".format(instance_2_zpa_customer_id))
+    instance_3_zia_api_key = helper.get_global_setting("instance_3_zia_api_key")
+    helper.log_info("instance_3_zia_api_key={}".format(instance_3_zia_api_key))
+    instance_3_zia_cloud = helper.get_global_setting("instance_3_zia_cloud")
+    helper.log_info("instance_3_zia_cloud={}".format(instance_3_zia_cloud))
+    instance_3_zpa_customer_id = helper.get_global_setting("instance_3_zpa_customer_id")
+    helper.log_info("instance_3_zpa_customer_id={}".format(instance_3_zpa_customer_id))
 
     # The following example gets the alert action parameters and prints them to the log
-    account_username = helper.get_param("account_username")
-    helper.log_info("account_username={}".format(account_username))
+    instances = helper.get_param("instances")
+    helper.log_info("instances={}".format(instances))
+
+    account_usernames = helper.get_param("account_usernames")
+    helper.log_info("account_usernames={}".format(account_usernames))
 
     action = helper.get_param("action")
     helper.log_info("action={}".format(action))
@@ -68,67 +83,77 @@ def process_event(helper, *args, **kwargs):
     # Define global variables
     global REF_FILE
     
-    # Get Zscaler information
-    client = helper.get_user_credential(helper.get_param("account_username"))
-    if client is None:
-        helper.log_error("[ZIA-E-AUTH-ACCOUNT] Account can't be found. Did you configured the account under Configuration ? Did you mentionned the account username to use when raising this action ?")
-        sys.exit(1)
-    helper.log_debug("[ZIA-D-AUTH] Authentication will be done using the account \""+str(client["username"])+"\"")
-    # Get credentials for Zscaler
-    api_key = helper.get_global_setting("zia_api_key")
-    if api_key is None or api_key == "":
-        helper.log_error("[ZIA-E-API_KEY_NULL] No API key was provided, check your configuration")
-        sys.exit(1)
+    # Get Alert action inputs
+    instances = [str(i) for i in helper.get_param("instances").replace(" ","").split(",")]
+    
+    for instance in instances:
+    
+        # Get Zscaler information
+        account_usernames = json.loads(helper.get_param("account_usernames"))
+        if instance not in account_usernames:
+            helper.log_error("[ZIA-E-INCOMPLETE_INSTANCE_ACCOUNT] Account can't be found for the current instance n°"+str(instance)+". Please review the 'Account usernames' field and check that a key \""+instance+"\" exists and is defined with the good account to use")
+            sys.exit(1)
+        client = helper.get_user_credential(account_usernames[instance])
+        if client is None:
+            helper.log_error("[ZIA-E-AUTH-ACCOUNT] Account can't be found. Did you configured the account under Configuration ? Did you mentionned the account username to use when raising this action ?")
+            sys.exit(1)
+        helper.log_debug("[ZIA-D-AUTH] Authentication will be done using the account \""+str(client["username"])+"\"")
+        # Get credentials for Zscaler
+        api_key = helper.get_global_setting("instance_"+str(instance)+"_zia_api_key")
+        if api_key is None or api_key == "":
+            helper.log_error("[ZIA-E-API_KEY_NULL] No API key was provided for instance n°"+str(instance)+", check your configuration")
+            sys.exit(1)
+            
+        cloud = helper.get_global_setting("instance_"+str(instance)+"_zia_cloud")
+        if cloud is None or cloud == "":
+            helper.log_error("[ZIA-E-CLOUD_NULL] No Cloud information was provided for instance n°"+str(instance)+", check your configuration")
+            sys.exit(1)
         
-    cloud = helper.get_global_setting("zia_cloud")
-    if cloud is None or cloud == "":
-        helper.log_error("[ZIA-E-CLOUD_NULL] No Cloud information was provided, check your configuration")
-        sys.exit(1)
-    
-    # Get parameters
-    action = helper.get_param("action")
-    
-    # Get events
-    events = helper.get_events()
-    
-    # Instanciate the ZPA object with given inputs
-    try:
-        zia = ZIA(api_key=api_key, cloud=cloud, username=client["username"], password=client["password"])
-    except restfly.errors.BadRequestError as e:
-        helper.log_error("[ZIA-E-BAD_CREDENTIALS] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
-        sys.exit(10)
-    
-    helper.log_debug("[ZIA-D-ZIA_OBJECT] Zscaler ZPA connection object is created successfully")
-    
-    # Check the activate status before submitting changes
-    status = zia.config.status()
-    if status != "ACTIVE":
-        helper.log_error("[ZIA-E-CHANGE_PENDING_OR_INPROGRESS] 🔴 Your request will not be processed as changes are pending or in progress in Zscaler ZIA. By precaution, no action will be done to avoid pushing any wrong change that is not yet validated")
-        sys.exit(11)
-    else:
-        helper.log_info("[ZIA-I-CHECK_CHANGES] No change is pending or in progress in ZIA, process the action")
-    
-    try:
-        for event in events:
-            if action == "add_urls_to_category":
-                REF_FILE = "url_categories.py#L215"
-                helper.log_info("[ZIA-I-VALIDATE_ADD_URLS_TO_CATEGORY] Validating events for adding URLs to category")
-                # Validate the function with current events
-                params = validate_function(helper, zia.url_categories.add_urls_to_category, event)
-                # Execute the action to Zscaler
-                zia.url_categories.add_urls_to_category(**params)
-                helper.log_info("[ZIA-I-ACTION_ADD_URLS_TO_CATEGORY] 🟢 Action was performed in Zscaler")
-            else:
-                helper.log_error("[ZIA-E-ACTION] Selected action is not supported by this custom alert action")
-                sys.exit(10)
-    except restfly.errors.BadRequestError as e:
-        helper.log_error("[ZIA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
-        sys.exit(15)
-    
-    # Activate the configuration
-    status = zia.config.activate()
-    helper.log_info("[ZIA-I-AUTOMATIC_ACTIVATE] Configuration has been automatically activated")
-    
+        # Get parameters
+        action = helper.get_param("action")
+        
+        # Get events
+        events = helper.get_events()
+        
+        # Instanciate the ZPA object with given inputs
+        try:
+            zia = ZIA(api_key=api_key, cloud=cloud, username=client["username"], password=client["password"])
+        except restfly.errors.BadRequestError as e:
+            helper.log_error("[ZIA-E-BAD_CREDENTIALS] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+            sys.exit(10)
+        
+        helper.log_debug("[ZIA-D-ZIA_OBJECT] Zscaler ZPA connection object is created successfully")
+        
+        # Check the activate status before submitting changes
+        status = zia.config.status()
+        if status != "ACTIVE":
+            helper.log_error("[ZIA-E-CHANGE_PENDING_OR_INPROGRESS] 🔴 Your request will not be processed as changes are pending or in progress in Zscaler ZIA. By precaution, no action will be done to avoid pushing any wrong change that is not yet validated")
+            sys.exit(11)
+        else:
+            helper.log_info("[ZIA-I-CHECK_CHANGES] No change is pending or in progress in ZIA, process the action")
+        
+        try:
+            for event in events:
+                if action == "add_urls_to_category":
+                    REF_FILE = "url_categories.py#L215"
+                    helper.log_info("[ZIA-I-VALIDATE_ADD_URLS_TO_CATEGORY] Validating events for adding URLs to category")
+                    # Validate the function with current events
+                    params = validate_function(helper, zia.url_categories.add_urls_to_category, event)
+                    # Execute the action to Zscaler
+                    zia.url_categories.add_urls_to_category(**params)
+                else:
+                    helper.log_error("[ZIA-E-ACTION] Selected action is not supported by this custom alert action")
+                    sys.exit(10)
+                    
+                helper.log_info("[ZIA-I-ACTION_SUCCESSFUL] 🟢 Action was performed in Zscaler (instance n°"+str(instance)+")")
+        except restfly.errors.BadRequestError as e:
+            helper.log_error("[ZIA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+            sys.exit(15)
+        
+        # Activate the configuration
+        status = zia.config.activate()
+        helper.log_info("[ZIA-I-AUTOMATIC_ACTIVATE] Configuration has been automatically activated")
+        
     return 0
 
 # This function is used to validate inputs for the given function

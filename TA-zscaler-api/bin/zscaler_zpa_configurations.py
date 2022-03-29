@@ -46,6 +46,10 @@ class ModInputzscaler_zpa_configurations(modinput_wrapper.base_modinput.BaseModI
         For customized inputs, hard code the arguments here to hide argument detail from users.
         For other input types, arguments should be get from input_module. Defining new input types could be easier.
         """
+        scheme.add_argument(smi.Argument("instance", title="Instance",
+                                         description="Select the instance you want the events from",
+                                         required_on_create=True,
+                                         required_on_edit=False))
         scheme.add_argument(smi.Argument("client_account", title="Client Account",
                                          description="Enter your Zscaler Client account (configured under Account)",
                                          required_on_create=True,

@@ -34,6 +34,13 @@ fields = [
         )
     ), 
     field.RestField(
+        'instance',
+        required=True,
+        encrypted=False,
+        default='1',
+        validator=None
+    ), 
+    field.RestField(
         'client_account',
         required=True,
         encrypted=False,

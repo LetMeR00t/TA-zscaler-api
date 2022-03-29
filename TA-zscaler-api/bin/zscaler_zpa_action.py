@@ -16,8 +16,12 @@ class AlertActionWorkerzscaler_zpa_action(ModularAlertBase):
 
     def validate_params(self):
 
-        if not self.get_param("account_username"):
-            self.log_error('account_username is a mandatory parameter, but its value is None.')
+        if not self.get_param("instances"):
+            self.log_error('instances is a mandatory parameter, but its value is None.')
+            return False
+
+        if not self.get_param("account_usernames"):
+            self.log_error('account_usernames is a mandatory parameter, but its value is None.')
             return False
 
         if not self.get_param("action"):

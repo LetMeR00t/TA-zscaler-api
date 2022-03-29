@@ -149,18 +149,19 @@ def collect_events(helper, ew):
     INPUT_UID = hashlib.sha256(str(datetime.datetime.now()).encode()).hexdigest()[:8]
     
     # Get information about the Splunk input
+    opt_instance = helper.get_arg('instance')
     opt_items = helper.get_arg('items')
     
     # Get credentials for Zscaler
     client = helper.get_arg('client_account')
-    api_key = helper.get_global_setting("zia_api_key")
+    api_key = helper.get_global_setting("instance_"+str(opt_instance)+"_zia_api_key")
     if api_key is None or api_key == "":
-        helper.log_error("[ZIA-E-API_KEY_NULL] No API key was provided, check your configuration")
+        helper.log_error("[ZIA-E-API_KEY_NULL] No API key was provided for instance n°"+str(opt_instance)+", check your configuration")
         sys.exit(1)
         
-    cloud = helper.get_global_setting("zia_cloud")
+    cloud = helper.get_global_setting("instance_"+str(opt_instance)+"_zia_cloud")
     if cloud is None or cloud == "":
-        helper.log_error("[ZIA-E-CLOUD_NULL] No Cloud information was provided, check your configuration")
+        helper.log_error("[ZIA-E-CLOUD_NULL] No Cloud information was provided for instance n°"+str(opt_instance)+", check your configuration")
         sys.exit(1)
 
     ITEMS_MAP = {

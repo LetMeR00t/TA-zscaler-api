@@ -27,7 +27,7 @@ model_logging = RestModel(fields_logging, name='logging')
 
 fields_additional_parameters = [
     field.RestField(
-        'zia_api_key',
+        'instance_1_zia_api_key',
         required=False,
         encrypted=False,
         default='',
@@ -37,7 +37,7 @@ fields_additional_parameters = [
         )
     ), 
     field.RestField(
-        'zia_cloud',
+        'instance_1_zia_cloud',
         required=False,
         encrypted=False,
         default='',
@@ -47,7 +47,67 @@ fields_additional_parameters = [
         )
     ), 
     field.RestField(
-        'zpa_customer_id',
+        'instance_1_zpa_customer_id',
+        required=False,
+        encrypted=False,
+        default='',
+        validator=validator.String(
+            min_len=0, 
+            max_len=8192, 
+        )
+    ), 
+    field.RestField(
+        'instance_2_zia_api_key',
+        required=False,
+        encrypted=False,
+        default='',
+        validator=validator.String(
+            min_len=0, 
+            max_len=8192, 
+        )
+    ), 
+    field.RestField(
+        'instance_2_zia_cloud',
+        required=False,
+        encrypted=False,
+        default='',
+        validator=validator.String(
+            min_len=0, 
+            max_len=8192, 
+        )
+    ), 
+    field.RestField(
+        'instance_2_zpa_customer_id',
+        required=False,
+        encrypted=False,
+        default='',
+        validator=validator.String(
+            min_len=0, 
+            max_len=8192, 
+        )
+    ), 
+    field.RestField(
+        'instance_3_zia_api_key',
+        required=False,
+        encrypted=False,
+        default='',
+        validator=validator.String(
+            min_len=0, 
+            max_len=8192, 
+        )
+    ), 
+    field.RestField(
+        'instance_3_zia_cloud',
+        required=False,
+        encrypted=False,
+        default='',
+        validator=validator.String(
+            min_len=0, 
+            max_len=8192, 
+        )
+    ), 
+    field.RestField(
+        'instance_3_zpa_customer_id',
         required=False,
         encrypted=False,
         default='',

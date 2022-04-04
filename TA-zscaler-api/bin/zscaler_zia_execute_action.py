@@ -20,8 +20,16 @@ class AlertActionWorkerzscaler_zia_execute_action(ModularAlertBase):
             self.log_error('instances is a mandatory parameter, but its value is None.')
             return False
 
-        if not self.get_param("account_usernames"):
-            self.log_error('account_usernames is a mandatory parameter, but its value is None.')
+        if not self.get_param("account_username_instance_1"):
+            self.log_error('account_username_instance_1 is a mandatory parameter, but its value is None.')
+            return False
+
+        if not self.get_param("account_username_instance_2"):
+            self.log_error('account_username_instance_2 is a mandatory parameter, but its value is None.')
+            return False
+
+        if not self.get_param("account_username_instance_3"):
+            self.log_error('account_username_instance_3 is a mandatory parameter, but its value is None.')
             return False
 
         if not self.get_param("action"):

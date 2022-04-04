@@ -94,8 +94,14 @@ def process_event(helper, *args, **kwargs):
     instances = helper.get_param("instances")
     helper.log_info("instances={}".format(instances))
 
-    account_usernames = helper.get_param("account_usernames")
-    helper.log_info("account_usernames={}".format(account_usernames))
+    account_username_instance_1 = helper.get_param("account_username_instance_1")
+    helper.log_info("account_username_instance_1={}".format(account_username_instance_1))
+
+    account_username_instance_2 = helper.get_param("account_username_instance_2")
+    helper.log_info("account_username_instance_2={}".format(account_username_instance_2))
+
+    account_username_instance_3 = helper.get_param("account_username_instance_3")
+    helper.log_info("account_username_instance_3={}".format(account_username_instance_3))
 
     action = helper.get_param("action")
     helper.log_info("action={}".format(action))
@@ -141,11 +147,11 @@ def process_event(helper, *args, **kwargs):
     for instance in instances:
     
         # Get Zscaler information
-        account_usernames = json.loads(helper.get_param("account_usernames"))
-        if instance not in account_usernames:
-            helper.log_error("[ZPA-E-INCOMPLETE_INSTANCE_ACCOUNT] Account can't be found for the current instance n°"+str(instance)+". Please review the 'Account usernames' field and check that a key \""+instance+"\" exists and is defined with the good account to use")
+        account_username = helper.get_param("account_username_instance_"+str(instance))
+        if account_username == "-":
+            helper.log_error("[ZPA-E-INCOMPLETE_INSTANCE_ACCOUNT] Account can't be found for the current instance n°"+str(instance)+". Please review the setting to indicate which username need to be used")
             sys.exit(1)
-        client = helper.get_user_credential(account_usernames[instance])
+        client = helper.get_user_credential(account_username)
         if client is None:
             helper.log_error("[ZPA-E-AUTH-ACCOUNT] Account can't be found. Did you configured the account under Configuration ? Did you mentionned the account username to use when raising this action ?")
             sys.exit(1)

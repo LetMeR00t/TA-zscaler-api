@@ -84,7 +84,7 @@
         <br/>
         <p>
           <b>Add URLs to an existing category using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/url_categories.py#L215" target="_blank">url_categories.py#L215</a>)</p> 
-        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zia_execute_action param.instances=$instances$ param.account_usernames="{\"$instances$\": \"$account$\"}" param.action="add_urls_to_category"</p>
+        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zia_execute_action param.instances=$instances$ param.account_username_instance_1="$account$" param.action="add_urls_to_category"</p>
         <br/>
         <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
       </html>

@@ -135,7 +135,7 @@
         <br/>
         <p>
           <b>Create an application segment using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/app_segments.py#L61" target="_blank">app_segments.py#L61</a>)</p> 
-        <p>| makeresults | eval name = "$app_segment_create_name$", domain_names = "$app_segment_create_domain_names$", $app_segment_create_port_type$_ports = "$app_segment_create_ports$", bypass_type = "$app_segment_create_bypass_type$", segment_group_id = "$app_segment_create_segment_group_id$", server_group_ids = "$app_segment_create_server_group_ids$", description = "$app_segment_create_description$" | sendalert zscaler_zpa_action param.instances=$instances$ param.account_username_instance_1="$account$" param.action="create_app_segment"</p>
+        <p>| makeresults | eval name = "$app_segment_create_name$", domain_names = "$app_segment_create_domain_names$", $app_segment_create_port_type$_ports = "$app_segment_create_ports$", bypass_type = "$app_segment_create_bypass_type$", segment_group_id = "$app_segment_create_segment_group_id$", server_group_ids = "$app_segment_create_server_group_ids$", description = "$app_segment_create_description$" | sendalert zscaler_zpa_action param.instances=$instances$ param.account_username_instance_$instances$="$account$" param.action="create_app_segment"</p>
         <br/>
         <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
       </html>
@@ -169,7 +169,7 @@
         <br/>
         <p>
           <b>Update an application segment using this command</b>: (here, only the name and description) (Ref: <a href="$ref_url$/$ref_tool$/app_segments.py#L150" target="_blank">app_segments.py#L150</a>)</p>
-        <p>| makeresults | eval segment_id = "$app_segment_update_app_segment_id$" | sendalert zscaler_zpa_action param.instances=$instances$ param.account_username_instance_1="$account$" param.action="update_app_segment"</p>
+        <p>| makeresults | eval segment_id = "$app_segment_update_app_segment_id$" | sendalert zscaler_zpa_action param.instances=$instances$ param.account_username_instance_$instances$="$account$" param.action="update_app_segment"</p>
         <br/>
         <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
       </html>
@@ -198,7 +198,7 @@
         <br/>
         <p>
           <b>Delete an application segment using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/app_segments.py#L44" target="_blank">app_segments.py#L44</a>)</p>
-        <p>| makeresults | eval segment_id = "$app_segment_delete_app_segment_id$" | sendalert zscaler_zpa_action param.instances=$instances$ param.account_username_instance_1="$account$" param.action="delete_app_segment"</p>
+        <p>| makeresults | eval segment_id = "$app_segment_delete_app_segment_id$" | sendalert zscaler_zpa_action param.instances=$instances$ param.account_username_instance_$instances$="$account$" param.action="delete_app_segment"</p>
         <br/>
         <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
       </html>

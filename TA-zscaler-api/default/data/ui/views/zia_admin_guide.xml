@@ -21,7 +21,7 @@
     </done>
   </search>
   <fieldset submitButton="false">
-    <input type="dropdown" token="instances">
+    <input type="dropdown" token="instance">
       <label>Instances</label>
       <choice value="1">Instance 1</choice>
       <choice value="2">Instance 2</choice>
@@ -42,17 +42,18 @@
     </input>
     <input type="dropdown" token="account">
       <label>Account Username</label>
-      <fieldForLabel>username</fieldForLabel>
+      <fieldForLabel>title</fieldForLabel>
       <fieldForValue>username</fieldForValue>
       <search>
         <query>| rest /servicesNS/nobody/TA-zscaler-api/configs/conf-ta_zscaler_api_account
-| table username</query>
+| table title, username
+| eval title = title+": "+username</query>
       </search>
     </input>
   </fieldset>
   <row>
     <panel>
-      <title>Add URLs to category</title>
+      <title>Add URLs to a category</title>
       <input type="dropdown" token="url_categories_add_category">
         <label>[ADD] Category</label>
         <fieldForLabel>configured_name</fieldForLabel>
@@ -84,7 +85,47 @@
         <br/>
         <p>
           <b>Add URLs to an existing category using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/url_categories.py#L215" target="_blank">url_categories.py#L215</a>)</p> 
-        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zia_execute_action param.instances=$instances$ param.account_username_instance_1="$account$" param.action="add_urls_to_category"</p>
+        <p>| makeresults | eval category_id="$url_categories_add_category$", urls="$url_categories_add_urls$" | sendalert zscaler_zia_execute_action param.instances=$instance$ param.account_username_instance_$instance$="$account$" param.action="add_urls_to_category"</p>
+        <br/>
+        <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Delete URLs from a category</title>
+      <input type="dropdown" token="url_categories_delete_category">
+        <label>[DELETE] Category</label>
+        <fieldForLabel>configured_name</fieldForLabel>
+        <fieldForValue>id</fieldForValue>
+        <search>
+          <query>index=* sourcetype="zscaler:api:zia" source="zia:$zscaler_input$:$data_uid$:url_category:*"
+| eval configured_name = coalesce(configured_name,id)
+| stats count by id, configured_name
+| sort 0 configured_name</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+        </search>
+      </input>
+      <input type="text" token="url_categories_delete_urls">
+        <label>[DELETE] URLs</label>
+      </input>
+      <html>
+        <h2 style="color:#56BA56">
+          <b>
+            <i>How to delete URLs from an existing category ?</i>
+          </b>
+        </h2>
+        <ul>
+          <li>
+            <b>Category</b>: $url_categories_delete_category$</li>
+          <li>
+            <b>URLs</b> (separated by ","): $url_categories_delete_urls$</li>
+        </ul>
+        <br/>
+        <p>
+          <b>Delete URLs from an existing category using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/url_categories.py#L239" target="_blank">url_categories.py#L239</a>)</p> 
+        <p>| makeresults | eval category_id="$url_categories_delete_category$", urls="$url_categories_delete_urls$" | sendalert zscaler_zia_execute_action param.instances=$instance$ param.account_username_instance_$instance$="$account$" param.action="delete_urls_from_category"</p>
         <br/>
         <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
       </html>

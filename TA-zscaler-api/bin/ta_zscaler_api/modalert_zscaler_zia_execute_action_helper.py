@@ -93,7 +93,6 @@ def process_event(helper, *args, **kwargs):
     instances = [str(i) for i in helper.get_param("instances").replace(" ","").split(",")]
     
     for instance in instances:
-    
         # Get Zscaler information
         account_username = helper.get_param("account_username_instance_"+str(instance))
         if account_username == "-":
@@ -109,7 +108,6 @@ def process_event(helper, *args, **kwargs):
         if api_key is None or api_key == "":
             helper.log_error("[ZIA-E-API_KEY_NULL] No API key was provided for instance n°"+str(instance)+", check your configuration")
             sys.exit(1)
-            
         cloud = helper.get_global_setting("instance_"+str(instance)+"_zia_cloud")
         if cloud is None or cloud == "":
             helper.log_error("[ZIA-E-CLOUD_NULL] No Cloud information was provided for instance n°"+str(instance)+", check your configuration")
@@ -120,14 +118,12 @@ def process_event(helper, *args, **kwargs):
         
         # Get events
         events = helper.get_events()
-        
         # Instanciate the ZPA object with given inputs
         try:
             zia = ZIA(api_key=api_key, cloud=cloud, username=client["username"], password=client["password"])
         except restfly.errors.BadRequestError as e:
             helper.log_error("[ZIA-E-BAD_CREDENTIALS] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
             sys.exit(10)
-        
         helper.log_debug("[ZIA-D-ZIA_OBJECT] Zscaler ZPA connection object is created successfully")
         
         # Check the activate status before submitting changes
@@ -142,11 +138,18 @@ def process_event(helper, *args, **kwargs):
             for event in events:
                 if action == "add_urls_to_category":
                     REF_FILE = "url_categories.py#L215"
-                    helper.log_info("[ZIA-I-VALIDATE_ADD_URLS_TO_CATEGORY] Validating events for adding URLs to category")
+                    helper.log_info("[ZIA-I-VALIDATE_ADD_URLS_TO_CATEGORY] Validating events for adding URLs to a category")
                     # Validate the function with current events
                     params = validate_function(helper, zia.url_categories.add_urls_to_category, event)
                     # Execute the action to Zscaler
                     zia.url_categories.add_urls_to_category(**params)
+                elif action == "delete_urls_from_category":
+                    REF_FILE = "url_categories.py#L239"
+                    helper.log_info("[ZIA-I-VALIDATE_DELETE_URLS_FROM_CATEGORY] Validating events for deleting URLs from a category")
+                    # Validate the function with current events
+                    params = validate_function(helper, zia.url_categories.delete_urls_from_category, event)
+                    # Execute the action to Zscaler
+                    zia.url_categories.delete_urls_from_category(**params)
                 else:
                     helper.log_error("[ZIA-E-ACTION] Selected action is not supported by this custom alert action")
                     sys.exit(10)

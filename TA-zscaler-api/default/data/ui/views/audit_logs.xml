@@ -18,17 +18,22 @@
           <query>index=_internal source IN ("*ta_zscaler_api_zscaler_zia_configurations.log","*ta_zscaler_api_zscaler_zpa_configurations.log")
 | rex field="_raw" "^\d+\-\d+\-\d+ \d+:\d+:\d+,\d+ (?&lt;level&gt;[^ ]+) pid=(?&lt;pid&gt;[^ ]+) tid=[^ ]+ file=[^ ]+ \| (?&lt;signature&gt;.*)"
 | sort 0 -_time
-| table _time pid level signature
-| rename pid as PID, level as Level, signature as "Signature"</query>
+| table _time host pid level signature
+| rename host as "Host", pid as PID, level as Level, signature as "Signature"</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
           <sampleRatio>1</sampleRatio>
         </search>
         <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
         <format type="color" field="Level">
           <colorPalette type="map">{"ERROR":#DC4E41,"WARNING":#F1813F,"INFO":#62B3B2,"DEBUG":#708794}</colorPalette>
         </format>
         <format type="color" field="PID">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+        <format type="color" field="Host">
           <colorPalette type="sharedList"></colorPalette>
           <scale type="sharedCategory"></scale>
         </format>
@@ -45,8 +50,8 @@
 | rex field=source "(?&lt;file&gt;[^\\\\]+)$"
 | eval signature = coalesce(signature,_raw)
 | sort 0 -_time  
-| table  _time file user sid level signature
-| rename file as "File", user as "User", sid as "SID", level as "Level", signature as "Signature"</query>
+| table _time host file user sid level signature
+| rename host as "Host", file as "File", user as "User", sid as "SID", level as "Level", signature as "Signature"</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
           <sampleRatio>1</sampleRatio>
@@ -55,6 +60,7 @@
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
         <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
@@ -66,6 +72,10 @@
           <scale type="sharedCategory"></scale>
         </format>
         <format type="color" field="User">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+        <format type="color" field="Host">
           <colorPalette type="sharedList"></colorPalette>
           <scale type="sharedCategory"></scale>
         </format>

@@ -17,6 +17,7 @@
         <search>
           <query>index=_internal source IN ("*ta_zscaler_api_zscaler_zia_configurations.log","*ta_zscaler_api_zscaler_zpa_configurations.log")
 | rex field="_raw" "^\d+\-\d+\-\d+ \d+:\d+:\d+,\d+ (?&lt;level&gt;[^ ]+) pid=(?&lt;pid&gt;[^ ]+) tid=[^ ]+ file=[^ ]+ \| (?&lt;signature&gt;.*)"
+| eval signature = coalesce(signature,_raw)
 | sort 0 -_time
 | table _time host pid level signature
 | rename host as "Host", pid as PID, level as Level, signature as "Signature"</query>
@@ -47,11 +48,11 @@
         <search>
           <query>index=cim_modactions sourcetype="modular_alerts:*" app="TA-zscaler-api" 
 | rex field=_raw "^\d+\-\d+\-\d+ \d+:\d+:\d+,\d+ (?&lt;level&gt;[^ ]+)"
-| rex field=source "(?&lt;file&gt;[^\\\\]+)$"
+| rex field=source "(?&lt;file&gt;[^\\\\/]+)$"
 | eval signature = coalesce(signature,_raw)
 | sort 0 -_time  
-| table _time host file user sid level signature
-| rename host as "Host", file as "File", user as "User", sid as "SID", level as "Level", signature as "Signature"</query>
+| table _time host user sid level signature
+| rename host as "Host", user as "User", sid as "SID", level as "Level", signature as "Signature"</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
           <sampleRatio>1</sampleRatio>

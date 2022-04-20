@@ -1,7 +1,7 @@
 [![TA-zscaler-api](https://github.com/LetMeR00t/TA-zscaler-api/blob/3e786c9dd5701a0a3e82fddd638e61d432479899/images/logo.png?raw=true)](https://github.com/LetMeR00t/TA-zscaler-api/)
 
 [![GitHub Release](https://img.shields.io/github/release/LetMeR00t/TA-zscaler-api.svg)](https://github.com/LetMeR00t/TA-zscaler-api/releases/)
-[![dependency pyzscaler version](https://img.shields.io/badge/dependency-pyzscaler:v1.1.1-green)](https://github.com/mitchos/pyZscaler/tree/1.1.0/)
+[![dependency pyzscaler version](https://img.shields.io/badge/dependency-pyzscaler:v1.1.1-green)](https://github.com/mitchos/pyZscaler/tree/1.1.1/)
 ![Maintained](https://img.shields.io/badge/Maintained%3F-yes-green.svg)
 [![License](https://img.shields.io/github/license/LetMeR00t/TA-zscaler-api.svg)](https://github.com/LetMeR00t/TA-zscaler-api)
 
@@ -12,16 +12,19 @@ This TA allows to **add an integration** between [Zscaler](https://www.zscaler.c
   * Get all configurations for Zscaler ZIA periodically using a HTTP input within Splunk
   * Interact with Zscaler ZIA using custom alert actions
     * Add URLs to an existing category
+    * Delete URLs from an existing category
 * ZPA
   * Get all configurations for Zscaler ZPA periodically using a HTTP input within Splunk
   * Interact with Zscaler ZPA using custom alert actions
     * Create/update/delete an application segment
+    * Create a segment group
 
 As this TA is based on the [unofficial SDK for the Zscaler API (mitchos/pyZscaler)](https://github.com/mitchos/pyZscaler), it is not affiliated with, nor supported by Zscaler in any way.
 
 Click on the link above to access to the information you want to know:
 - [TA-zscaler-api - An unofficial Splunk technical add-on for the Zscaler API](#ta-zscaler-api---an-unofficial-splunk-technical-add-on-for-the-zscaler-api)
 - [Use Cases](#use-cases)
+- [Configuration](#configuration)
 - [Security of credentials](#security-of-credentials)
 - [Support](#support)
 - [Credits](#credits)
@@ -33,8 +36,13 @@ The objective is to interface a security tool such as Zscaler with Splunk to ena
 - All ZIA or ZPA configurations can be recovered periodically partially or totally within Splunk to check changes over time
 - Ability to create "application segments" automatically through a custom alert action or using a dedicated dashboard that could check input data before sending 
 
+# Configuration
+TBD soon
+
+Good practice is to use one account for one instance. Don't use the same account for different instances. Moreover, don't use different accounts with the same username on different instances (you will have some issues with the scripts)
+
 # Security of credentials
-To let Splunk interact with Zscaler, you will have to provide critical information such as the Zscaler customer ID, a client ID and a client password. 
+To let Splunk interact with Zscaler, you will have to provide critical information such as the Zscaler customer ID, a client ID and a client password for ZPA. 
 
 Those information are stored in the application in plaintext for the Zscaler customer ID and the client ID, the client secret as for it is stored in the storage/password feature of Splunk and is encrypted.
 

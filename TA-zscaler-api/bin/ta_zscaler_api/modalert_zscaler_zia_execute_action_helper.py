@@ -15,6 +15,8 @@ REF_URL = "https://github.com/mitchos/pyZscaler/blob/1.1.0/pyzscaler"
 REF_TOOL = "zia"
 REF_FILE = None
 
+LIMIT_API_COUNT = 0
+
 def process_event(helper, *args, **kwargs):
     """
     # IMPORTANT
@@ -141,6 +143,8 @@ def process_event(helper, *args, **kwargs):
                     helper.log_info("[ZIA-I-VALIDATE_ADD_URLS_TO_CATEGORY] Validating events for adding URLs to a category")
                     # Validate the function with current events
                     params = validate_function(helper, zia.url_categories.add_urls_to_category, event)
+                    # Limit API calls
+                    check_api_limit()
                     # Execute the action to Zscaler
                     zia.url_categories.add_urls_to_category(**params)
                 elif action == "delete_urls_from_category":
@@ -148,6 +152,8 @@ def process_event(helper, *args, **kwargs):
                     helper.log_info("[ZIA-I-VALIDATE_DELETE_URLS_FROM_CATEGORY] Validating events for deleting URLs from a category")
                     # Validate the function with current events
                     params = validate_function(helper, zia.url_categories.delete_urls_from_category, event)
+                    # Limit API calls
+                    check_api_limit()
                     # Execute the action to Zscaler
                     zia.url_categories.delete_urls_from_category(**params)
                 else:
@@ -158,6 +164,15 @@ def process_event(helper, *args, **kwargs):
         except restfly.errors.BadRequestError as e:
             helper.log_error("[ZIA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
             sys.exit(15)
+        except restfly.errors.ForbiddenError as e:
+            helper.log_error("[ZIA-E-FORBIDDEN_REQUEST] 🔴 Your request is forbidden and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+            sys.exit(16)
+        except restfly.errors.TooManyRequestsError as e:
+            helper.log_error("[ZIA-E-TOO_MANY_REQUESTS] 🔴 Too many requests were performed to the Zscaler API: "+str(e.msg.replace("\"","'")))
+            sys.exit(17)
+        except Exception as e:
+            helper.log_error("[ZIA-E-HTTP_ERROR] 🔴 An HTTP error occured: "+str(e.msg.replace("\"","'")))
+            sys.exit(20) 
         
         # Activate the configuration
         status = zia.config.activate()
@@ -244,3 +259,11 @@ def process_param(helper, event, sig_name, sig_annotation, sig_default):
             helper.log_error("[ZIA-E-UNSUPPORTED_TYPE] Unsupported type for parameter: "+str(sig_annotation))
             sys.exit(1)
     return value
+
+# API Calls limit parameters - 10 times in a 10 second interval for any POST/PUT/DELETE call
+def check_api_limit():
+    global LIMIT_API_COUNT
+    LIMIT_API_COUNT += 1
+    if LIMIT_API_COUNT >= 10:
+        time.sleep(10)
+        LIMIT_API_COUNT = 0

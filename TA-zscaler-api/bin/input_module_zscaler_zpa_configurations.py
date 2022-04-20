@@ -190,13 +190,17 @@ def collect_events(helper, ew):
         # Get segment groups if specified (more complex, as we can have big segment groups)
         if "segment_groups" in opt_items:
             for data in zpa.segment_groups.list_groups():
-                applications = data["applications"]
-                del data["applications"]
-                for app in applications:
-                    data["application"] = app
+                if "applications" in data:
+                   applications = data["applications"]
+                   del data["applications"]
+                   for app in applications:
+                       data["application"] = app
+                       write_to_splunk(helper, ew, "segment_groups:"+str(data["id"]), data)
+                       log(helper, "segment_groups", data)
+                else:
                     write_to_splunk(helper, ew, "segment_groups:"+str(data["id"]), data)
                     log(helper, "segment_groups", data)
-                    
+
         
         # Get policies if specified (more complex)
         if "policies" in opt_items:
@@ -251,6 +255,15 @@ def collect_events(helper, ew):
     except restfly.errors.BadRequestError as e:
         helper.log_error("[ZPA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
         sys.exit(15)
+    except restfly.errors.ForbiddenError as e:
+        helper.log_error("[ZPA-E-FORBIDDEN_REQUEST] 🔴 Your request is forbidden and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+        sys.exit(16)
+    except restfly.errors.TooManyRequestsError as e:
+        helper.log_error("[ZPA-E-TOO_MANY_REQUESTS] 🔴 Too many requests were performed to the Zscaler API: "+str(e.msg.replace("\"","'")))
+        sys.exit(17)
+    except Exception as e:
+        helper.log_error("[ZPA-E-HTTP_ERROR] 🔴 An HTTP error occured: "+str(e.msg.replace("\"","'")))
+        sys.exit(20)  
         
     helper.log_info("[ZPA-I-END-COLLECT] 🟢 Events from Zscaler ZPA ("+str(opt_items)+") are recovered")
 

@@ -272,13 +272,13 @@ def collect_events(helper, ew):
                 write_to_splunk(helper, ew, "locations", data)
                 log(helper, "locations", data)
 
-        # Get Security policy blacklist if specified (more complex)
+        # Get Sandbox quota if specified (more complex)
         if "sandbox" in opt_items:
             sandbox_quota = zia.sandbox.get_quota()
             write_to_splunk(helper, ew, "sandbox:quota", sandbox_quota)
             log(helper, "sandbox:quota", sandbox_quota)
         
-        # Get Security policy blacklist if specified (more complex)
+        # Get Security policy for black list if specified (more complex)
         if "security_blacklist" in opt_items:
             blacklist = zia.security.get_blacklist()
             write_to_splunk(helper, ew, "security:blacklist", blacklist)
@@ -321,6 +321,12 @@ def collect_events(helper, ew):
     except restfly.errors.ForbiddenError as e:
         helper.log_error("[ZIA-E-FORBIDDEN_REQUEST] 🔴 Your request is forbidden and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
         sys.exit(16)
+    except restfly.errors.TooManyRequestsError as e:
+        helper.log_error("[ZIA-E-TOO_MANY_REQUESTS] 🔴 Too many requests were performed to the Zscaler API: "+str(e.msg.replace("\"","'")))
+        sys.exit(17)
+    except Exception as e:
+        helper.log_error("[ZIA-E-HTTP_ERROR] 🔴 An HTTP error occured: "+str(e.msg.replace("\"","'")))
+        sys.exit(20) 
     
     helper.log_info("[ZIA-I-END-COLLECT] 🟢 Events from Zscaler ZIA ("+str(opt_items)+") are recovered")
 

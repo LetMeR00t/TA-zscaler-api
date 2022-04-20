@@ -52,7 +52,7 @@
   </fieldset>
   <row>
     <panel>
-      <title>Application segment</title>
+      <title>⭐ Application Segment ⭐</title>
       <input type="text" token="app_segment_create_name">
         <label>[CREATE] Name</label>
       </input>
@@ -199,6 +199,58 @@
         <p>
           <b>Delete an application segment using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/app_segments.py#L44" target="_blank">app_segments.py#L44</a>)</p>
         <p>| makeresults | eval segment_id = "$app_segment_delete_app_segment_id$" | sendalert zscaler_zpa_action param.instances=$instances$ param.account_username_instance_$instances$="$account$" param.action="delete_app_segment"</p>
+        <br/>
+        <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>⭐ Segment Group ⭐</title>
+      <input type="text" token="segment_group_create_name">
+        <label>[CREATE] Name</label>
+      </input>
+      <input type="dropdown" token="segment_group_create_enabled">
+        <label>[CREATE] Enabled</label>
+        <choice value="false">False</choice>
+        <choice value="true">True</choice>
+      </input>
+      <input type="multiselect" token="segment_group_create_application_ids">
+        <label>[CREATE] Application IDs</label>
+        <fieldForLabel>name</fieldForLabel>
+        <fieldForValue>id</fieldForValue>
+        <search>
+          <query>index=* sourcetype="zscaler:api:zpa" source="zpa:$zscaler_input$:$data_uid$:app_segments"
+| stats count by id, name
+| sort 0 name</query>
+          <earliest>$data_earliest$</earliest>
+          <latest>$data_latest$</latest>
+        </search>
+        <delimiter>,</delimiter>
+      </input>
+      <input type="text" token="segment_group_create_description">
+        <label>[CREATE] Description</label>
+      </input>
+      <html>
+        <h2 style="color:#56BA56">
+          <b>
+            <i>How to create a segment group ?</i>
+          </b>
+        </h2>
+        <ul>
+          <li>
+            <b>Name</b>: $segment_group_create_name$</li>
+          <li>
+            <b>Enabled</b>: $segment_group_create_enabled$</li>
+          <li>
+            <b>Application IDs</b>: $segment_group_create_application_ids$</li>
+          <li>
+            <b>Description</b>: $segment_group_create_description$</li> 
+        </ul>
+        <br/>
+        <p>
+          <b>Create a segment group using this command</b>: (Ref: <a href="$ref_url$/$ref_tool$/segment_groups.py#L57" target="_blank">segment_groups.py#L57</a>)</p> 
+        <p>| makeresults | eval name = "$segment_group_create_name$", enabled = "$segment_group_create_enabled$", application_ids = "$segment_group_create_application_ids$", description = "$segment_group_create_description$" | sendalert zscaler_zpa_action param.instances=$instances$ param.account_username_instance_$instances$="$account$" param.action="create_segment_group"</p>
         <br/>
         <p>Note: Please note that the example is only for one instance, but you can add several instances at the same time by specifying the instances separated by a comma and complete the account_usernames dictionnary</p>
       </html>

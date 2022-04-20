@@ -54,6 +54,8 @@ REF_URL = "https://github.com/mitchos/pyZscaler/blob/1.1.0/pyzscaler"
 REF_TOOL = "zpa"
 REF_FILE = None
 
+LIMIT_API_COUNT = 0
+
 def process_event(helper, *args, **kwargs):
     """
     # IMPORTANT
@@ -178,6 +180,8 @@ def process_event(helper, *args, **kwargs):
                     helper.log_info("[ZPA-I-VALIDATE_NEW_APP_SEGMENT] Validating events for a new app segment")
                     # Validate the function with current events
                     params = validate_function(helper, zpa.app_segments.add_segment, event)
+                    # Limit API calls
+                    check_api_limit()
                     # Execute the action to Zscaler
                     zpa.app_segments.add_segment(**params)
                 elif action == "update_app_segment":
@@ -185,6 +189,8 @@ def process_event(helper, *args, **kwargs):
                     helper.log_info("[ZPA-I-VALIDATE_UPDATE_APP_SEGMENT] Validating events for updating an existing app segment")
                     # Validate the function with current events
                     params = validate_function(helper, zpa.app_segments.update_segment, event)
+                    # Limit API calls
+                    check_api_limit()
                     # Execute the action to Zscaler
                     zpa.app_segments.update_segment(**params)
                 elif action == "delete_app_segment":
@@ -194,24 +200,34 @@ def process_event(helper, *args, **kwargs):
                     params = validate_function(helper, zpa.app_segments.delete_segment, event)
                     # Execute the action to Zscaler
                     helper.log_info("[ZPA-I-PROCESS_DELETE_APP_SEGMENT] #1: Remove the application segment from the segment group to which it belongs")
+                    # Limit API calls
+                    check_api_limit()
                     app = zpa.app_segments.get_segment(**params)
                     helper.log_debug("[ZPA-D-APP_SEGMENT_FOUND] Application segment was found for the given ID: "+str(params))
+                    # Limit API calls
+                    check_api_limit()
                     # If there is no error on the previous command, it means that the app_segment really exist for the given id
                     segment = zpa.segment_groups.get_group(app["segment_group_id"])
                     helper.log_debug("[ZPA-D-SEGMENT_GROUP_FOUND] Segment group was found for the given ID: "+str(app["segment_group_id"]))
                     # We remove the ID by getting all other IDs without it
                     app_id_remaining = [app_of_segment["id"] for app_of_segment in segment["applications"] if app_of_segment["id"]!=app["id"]]
+                    # Limit API calls
+                    check_api_limit()
                     # We update the segment group to remove the application segment
                     zpa.segment_groups.update_group(group_id=segment["id"], application_ids=app_id_remaining)
                     helper.log_debug("[ZPA-D-SEGMENT_GROUP_UPDATED] Segment group was updated for the given ID: "+str(app["segment_group_id"]))
                     # Now we can delete the application segment itself
                     helper.log_info("[ZPA-I-PROCESS_DELETE_APP_SEGMENT] #2: Delete the application segment (id="+app["id"]+") itself")
+                    # Limit API calls
+                    check_api_limit()
                     zpa.app_segments.delete_segment(segment_id=app["id"])
                 elif action == "create_segment_group":
                     REF_FILE = "segment_groups.py#L57"
                     helper.log_info("[ZPA-I-VALIDATE_NEW_SEGMENT_GROUP] Validating events for a new segment group")
                     # Validate the function with current events
                     params = validate_function(helper, zpa.segment_groups.add_group, event)
+                    # Limit API calls
+                    check_api_limit()
                     # Execute the action to Zscaler
                     zpa.segment_groups.add_group(**params)
                 else:
@@ -222,6 +238,15 @@ def process_event(helper, *args, **kwargs):
         except restfly.errors.BadRequestError as e:
             helper.log_error("[ZPA-E-BAD_REQUEST] 🔴 Your request is not correct and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
             sys.exit(15)
+        except restfly.errors.ForbiddenError as e:
+            helper.log_error("[ZPA-E-FORBIDDEN_REQUEST] 🔴 Your request is forbidden and was rejected by Zscaler: "+str(e.msg.replace("\"","'")))
+            sys.exit(16)
+        except restfly.errors.TooManyRequestsError as e:
+            helper.log_error("[ZPA-E-TOO_MANY_REQUESTS] 🔴 Too many requests were performed to the Zscaler API: "+str(e.msg.replace("\"","'")))
+            sys.exit(17)
+        except Exception as e:
+            helper.log_error("[ZPA-E-HTTP_ERROR] 🔴 An HTTP error occured: "+str(e.msg.replace("\"","'")))
+            sys.exit(20) 
 
     return 0
 
@@ -304,3 +329,11 @@ def process_param(helper, event, sig_name, sig_annotation, sig_default):
             helper.log_error("[ZPA-E-UNSUPPORTED_TYPE] Unsupported type for parameter: "+str(sig_annotation))
             sys.exit(1)
     return value
+    
+# API Calls limit parameters - 10 times in a 10 second interval for any POST/PUT/DELETE call
+def check_api_limit():
+    global LIMIT_API_COUNT
+    LIMIT_API_COUNT += 1
+    if LIMIT_API_COUNT >= 10:
+        time.sleep(10)
+        LIMIT_API_COUNT = 0

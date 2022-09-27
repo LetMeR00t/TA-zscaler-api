@@ -12,6 +12,8 @@
 | eval latest = relative_time(latest,"+1s")
 | sort 0 -latest
 | head 1</query>
+    <earliest>-1mon</earliest>
+    <latest>now</latest>
     <done>
       <condition>
         <set token="data_uid">$result.uid$</set>
